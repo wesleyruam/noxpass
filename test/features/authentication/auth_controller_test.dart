@@ -7,9 +7,11 @@ import 'package:noxpass/core/crypto/vault_key_material.dart';
 import 'package:noxpass/core/database/app_database.dart';
 import 'package:noxpass/core/session/vault_session.dart';
 import 'package:noxpass/features/authentication/data/auth_data_providers.dart';
+import 'package:noxpass/features/authentication/data/brute_force_guard.dart';
 import 'package:noxpass/features/authentication/data/vault_database_factory.dart';
 import 'package:noxpass/features/authentication/data/vault_material_store.dart';
 import 'package:noxpass/features/authentication/domain/auth_state.dart';
+import 'package:noxpass/features/authentication/domain/brute_force.dart';
 import 'package:noxpass/features/authentication/presentation/auth_controller.dart';
 
 /// Armazenamento de material em memória.
@@ -36,6 +38,15 @@ class _FakeDbFactory implements VaultDatabaseFactory {
       AppDatabase(NativeDatabase.memory());
 }
 
+/// Registro de bloqueio em memória (sem secure storage).
+class _FakeLockoutStore implements LockoutStore {
+  LockoutState _state = LockoutState.initial;
+  @override
+  Future<LockoutState> read() async => _state;
+  @override
+  Future<void> write(LockoutState state) async => _state = state;
+}
+
 void main() {
   late ProviderContainer container;
   late _FakeMaterialStore store;
@@ -48,6 +59,9 @@ void main() {
         vaultDatabaseFactoryProvider.overrideWithValue(_FakeDbFactory()),
         // Argon2id barato para o teste rodar rápido.
         vaultKdfParamsProvider.overrideWithValue(KdfParams.insecureTestOnly),
+        bruteForceGuardProvider.overrideWithValue(
+          BruteForceGuard(store: _FakeLockoutStore()),
+        ),
       ],
     );
   });

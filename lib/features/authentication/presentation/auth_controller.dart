@@ -39,10 +39,21 @@ class AuthController extends AsyncNotifier<AuthState> {
   }
 
   /// Destrava um cofre existente. Senha incorreta não é erro fatal: volta a
-  /// [VaultStatus.locked] com uma mensagem.
+  /// [VaultStatus.locked] com uma mensagem. Protegido contra força bruta.
   Future<void> unlock(String masterPassword) async {
     state = const AsyncLoading<AuthState>().copyWithPrevious(state);
     state = await AsyncValue.guard(() async {
+      final guard = ref.read(bruteForceGuardProvider);
+
+      // Já bloqueado por tentativas demais?
+      final blocked = await guard.currentLockout();
+      if (blocked != null) {
+        return AuthState(
+          VaultStatus.locked,
+          error: 'Muitas tentativas. Aguarde ${_formatDuration(blocked)}.',
+        );
+      }
+
       final material = await ref.read(vaultMaterialStoreProvider).read();
       if (material == null) {
         return const AuthState(VaultStatus.unregistered);
@@ -52,18 +63,28 @@ class AuthController extends AsyncNotifier<AuthState> {
       try {
         keys = await ref.read(vaultKeyServiceProvider).unlock(masterPassword, material);
       } on AuthenticationFailure {
-        return const AuthState(
+        await guard.recordFailure();
+        final penalty = await guard.currentLockout();
+        return AuthState(
           VaultStatus.locked,
-          error: 'Senha mestra incorreta.',
+          error: penalty != null
+              ? 'Senha incorreta. Bloqueado por ${_formatDuration(penalty)}.'
+              : 'Senha mestra incorreta.',
         );
       }
 
+      await guard.recordSuccess();
       final db = await ref.read(vaultDatabaseFactoryProvider).open(keys);
       ref
           .read(vaultSessionProvider.notifier)
           .open(VaultSession(database: db, keys: keys));
       return const AuthState(VaultStatus.unlocked);
     });
+  }
+
+  String _formatDuration(Duration d) {
+    if (d.inMinutes >= 1) return '${d.inMinutes} min';
+    return '${d.inSeconds.clamp(1, 59)} s';
   }
 
   /// Trava o cofre (descarta chaves, fecha o banco).

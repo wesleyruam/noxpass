@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/crypto/kdf_params.dart';
+import 'brute_force_guard.dart';
 import 'vault_database_factory.dart';
 import 'vault_material_store.dart';
 
@@ -24,4 +25,11 @@ final vaultDatabaseFactoryProvider = Provider<VaultDatabaseFactory>(
 /// Parâmetros do Argon2id usados ao criar o cofre (testes reduzem o custo).
 final vaultKdfParamsProvider = Provider<KdfParams>(
   (ref) => KdfParams.owaspDefault,
+);
+
+/// Proteção contra força bruta no desbloqueio da senha mestra.
+final bruteForceGuardProvider = Provider<BruteForceGuard>(
+  (ref) => BruteForceGuard(
+    store: SecureLockoutStore(ref.watch(secureStorageProvider)),
+  ),
 );
