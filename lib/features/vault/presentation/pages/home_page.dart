@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../routes/app_routes.dart';
 import '../../../authentication/presentation/auth_controller.dart';
+import '../../../security/presentation/widgets/vault_stats_bar.dart';
 import '../../domain/entities/secret.dart';
 import '../../domain/entities/secret_payload.dart';
 import '../secrets_providers.dart';
@@ -39,6 +42,10 @@ class HomePage extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
+            const SizedBox(height: 8),
+            VaultStatsBar(
+              onIssuesTap: () => context.push(AppRoutes.securityPath),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: SearchBar(

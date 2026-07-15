@@ -7,6 +7,7 @@ import '../features/authentication/presentation/auth_controller.dart';
 import '../features/authentication/presentation/pages/create_master_password_page.dart';
 import '../features/authentication/presentation/pages/splash_page.dart';
 import '../features/authentication/presentation/pages/unlock_page.dart';
+import '../features/security/presentation/pages/security_report_page.dart';
 import '../features/vault/presentation/pages/home_page.dart';
 import 'app_routes.dart';
 
@@ -58,6 +59,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.homePath,
         name: AppRoutes.home,
         builder: (context, state) => const HomePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.securityPath,
+        name: AppRoutes.security,
+        builder: (context, state) => const SecurityReportPage(),
       ),
     ],
   );

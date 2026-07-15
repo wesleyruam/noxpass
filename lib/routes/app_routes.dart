@@ -11,4 +11,7 @@ abstract final class AppRoutes {
 
   static const String home = 'home';
   static const String homePath = '/home';
+
+  static const String security = 'security';
+  static const String securityPath = '/security';
 }
