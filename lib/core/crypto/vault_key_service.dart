@@ -153,6 +153,36 @@ class VaultKeyService {
     }
   }
 
+  /// Embrulha uma DEK **existente** sob um novo segredo (ex.: PIN/biometria),
+  /// produzindo um material que [unlock] consegue abrir. Reaproveita a mesma
+  /// DEK do cofre — as chaves resultantes são idênticas às do desbloqueio
+  /// pela senha mestra.
+  Future<VaultKeyMaterial> wrapDek(
+    Uint8List dekBytes,
+    String secret, {
+    KdfParams params = KdfParams.owaspDefault,
+  }) async {
+    if (dekBytes.length != _dekLength) {
+      throw const InvalidCryptoInputFailure('DEK com tamanho inesperado.');
+    }
+    final salt = _random.nextBytes(_saltLength);
+    final key = await _kdf.deriveKey(
+      password: secret,
+      salt: salt,
+      params: params,
+    );
+    try {
+      final wrapped = await _cipher.encrypt(plaintext: dekBytes, key: key);
+      return VaultKeyMaterial(
+        kdfSalt: salt,
+        kdfParams: params,
+        wrappedDek: wrapped,
+      );
+    } finally {
+      key.destroy();
+    }
+  }
+
   /// Deriva as subchaves de propósito específico a partir da DEK via HKDF.
   Future<UnlockedVaultKeys> _expandDek(Uint8List dekBytes) async {
     if (dekBytes.length != _dekLength) {

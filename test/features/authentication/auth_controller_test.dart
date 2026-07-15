@@ -8,6 +8,7 @@ import 'package:noxpass/core/database/app_database.dart';
 import 'package:noxpass/core/session/vault_session.dart';
 import 'package:noxpass/features/authentication/data/auth_data_providers.dart';
 import 'package:noxpass/features/authentication/data/brute_force_guard.dart';
+import 'package:noxpass/features/authentication/data/pin_credential_store.dart';
 import 'package:noxpass/features/authentication/data/vault_database_factory.dart';
 import 'package:noxpass/features/authentication/data/vault_material_store.dart';
 import 'package:noxpass/features/authentication/domain/auth_state.dart';
@@ -47,6 +48,19 @@ class _FakeLockoutStore implements LockoutStore {
   Future<void> write(LockoutState state) async => _state = state;
 }
 
+/// Credencial de PIN em memória.
+class _FakePinStore implements PinCredentialStore {
+  VaultKeyMaterial? _material;
+  @override
+  Future<void> clear() async => _material = null;
+  @override
+  Future<bool> exists() async => _material != null;
+  @override
+  Future<VaultKeyMaterial?> read() async => _material;
+  @override
+  Future<void> write(VaultKeyMaterial material) async => _material = material;
+}
+
 void main() {
   late ProviderContainer container;
   late _FakeMaterialStore store;
@@ -62,6 +76,7 @@ void main() {
         bruteForceGuardProvider.overrideWithValue(
           BruteForceGuard(store: _FakeLockoutStore()),
         ),
+        pinCredentialStoreProvider.overrideWithValue(_FakePinStore()),
       ],
     );
   });
@@ -107,5 +122,30 @@ void main() {
       VaultStatus.unlocked,
     );
     expect(container.read(vaultSessionProvider), isNotNull);
+  });
+
+  test('PIN: cadastra, destrava com PIN certo e recusa o errado', () async {
+    await container.read(authControllerProvider.future);
+    final notifier = container.read(authControllerProvider.notifier);
+
+    await notifier.createVault('senha-mestra');
+    await notifier.enrollPin('1234');
+    expect(await container.read(isPinEnabledProvider.future), isTrue);
+
+    await notifier.lock();
+    expect(container.read(vaultSessionProvider), isNull);
+
+    await notifier.unlockWithPin('1234');
+    expect(
+      container.read(authControllerProvider).valueOrNull?.status,
+      VaultStatus.unlocked,
+    );
+    expect(container.read(vaultSessionProvider), isNotNull);
+
+    await notifier.lock();
+    await notifier.unlockWithPin('0000');
+    final afterWrong = container.read(authControllerProvider).valueOrNull;
+    expect(afterWrong?.status, VaultStatus.locked);
+    expect(afterWrong?.error, isNotNull);
   });
 }

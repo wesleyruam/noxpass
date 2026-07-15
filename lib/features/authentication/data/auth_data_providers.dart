@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/crypto/kdf_params.dart';
 import 'brute_force_guard.dart';
+import 'pin_credential_store.dart';
 import 'vault_database_factory.dart';
 import 'vault_material_store.dart';
 
@@ -32,4 +33,14 @@ final bruteForceGuardProvider = Provider<BruteForceGuard>(
   (ref) => BruteForceGuard(
     store: SecureLockoutStore(ref.watch(secureStorageProvider)),
   ),
+);
+
+/// Credencial de desbloqueio rápido por PIN.
+final pinCredentialStoreProvider = Provider<PinCredentialStore>(
+  (ref) => SecurePinCredentialStore(ref.watch(secureStorageProvider)),
+);
+
+/// Verdadeiro quando há um PIN configurado.
+final isPinEnabledProvider = FutureProvider<bool>(
+  (ref) => ref.watch(pinCredentialStoreProvider).exists(),
 );

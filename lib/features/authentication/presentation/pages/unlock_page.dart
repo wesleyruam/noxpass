@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../shared/widgets/password_prompt.dart';
+import '../../data/auth_data_providers.dart';
 import '../auth_controller.dart';
 
 /// Desbloqueio do cofre existente pela senha mestra.
@@ -27,6 +29,19 @@ class _UnlockPageState extends ConsumerState<UnlockPage> {
     _passwordController.clear();
   }
 
+  Future<void> _unlockWithPin() async {
+    final pin = await promptForPassword(
+      context,
+      title: 'Desbloquear com PIN',
+      fieldLabel: 'PIN',
+      actionLabel: 'Desbloquear',
+      minLength: 4,
+      keyboardType: TextInputType.number,
+    );
+    if (pin == null) return;
+    await ref.read(authControllerProvider.notifier).unlockWithPin(pin);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -35,6 +50,7 @@ class _UnlockPageState extends ConsumerState<UnlockPage> {
     final isLoading = authState.isLoading;
     // Mensagem transitória (senha incorreta) vem no próprio estado.
     final error = authState.valueOrNull?.error;
+    final pinEnabled = ref.watch(isPinEnabledProvider).valueOrNull ?? false;
 
     return Scaffold(
       body: SafeArea(
@@ -84,6 +100,14 @@ class _UnlockPageState extends ConsumerState<UnlockPage> {
                           )
                         : const Text('Desbloquear'),
                   ),
+                  if (pinEnabled) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: isLoading ? null : _unlockWithPin,
+                      icon: const Icon(Icons.pin_outlined),
+                      label: const Text('Desbloquear com PIN'),
+                    ),
+                  ],
                 ],
               ),
             ),

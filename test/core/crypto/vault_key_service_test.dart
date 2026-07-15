@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:noxpass/core/crypto/crypto_failure.dart';
 import 'package:noxpass/core/crypto/kdf_params.dart';
@@ -103,6 +105,44 @@ void main() {
           newPassword: 'nova',
           material: created.material,
         ),
+        throwsA(isA<AuthenticationFailure>()),
+      );
+    });
+  });
+
+  group('VaultKeyService.wrapDek (credencial secundária / PIN)', () {
+    test('abre a MESMA DEK com um segredo secundário', () async {
+      final created = await service.createVault('senha-mestra', params: params);
+      addTearDown(created.keys.dispose);
+
+      final dek = await created.keys.dataKey.extractBytes();
+      final pinMaterial = await service.wrapDek(
+        Uint8List.fromList(dek),
+        '1234',
+        params: params,
+      );
+
+      final viaPin = await service.unlock('1234', pinMaterial);
+      addTearDown(viaPin.dispose);
+      expect(
+        await viaPin.databaseKey.extractBytes(),
+        await created.keys.databaseKey.extractBytes(),
+      );
+      expect(
+        await viaPin.fieldKey.extractBytes(),
+        await created.keys.fieldKey.extractBytes(),
+      );
+    });
+
+    test('segredo secundário incorreto falha', () async {
+      final created = await service.createVault('x', params: params);
+      addTearDown(created.keys.dispose);
+      final dek = await created.keys.dataKey.extractBytes();
+      final pinMaterial =
+          await service.wrapDek(Uint8List.fromList(dek), '1234', params: params);
+
+      expect(
+        () => service.unlock('9999', pinMaterial),
         throwsA(isA<AuthenticationFailure>()),
       );
     });

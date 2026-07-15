@@ -12,6 +12,8 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../core/crypto/crypto_failure.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../shared/widgets/password_prompt.dart';
+import '../../../authentication/data/auth_data_providers.dart';
+import '../../../authentication/presentation/auth_controller.dart';
 import '../../../backup/data/backup_providers.dart';
 import '../../../backup/domain/backup_service.dart';
 import '../settings_providers.dart';
@@ -34,6 +36,7 @@ class SettingsPage extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push(AppRoutes.securityPath),
           ),
+          const _PinTile(),
           _AutoLockTile(
             value: ref.watch(autoLockTimeoutProvider),
             onChanged: (duration) =>
@@ -145,6 +148,38 @@ class SettingsPage extends ConsumerWidget {
         const SnackBar(content: Text('Não foi possível importar.')),
       );
     }
+  }
+}
+
+class _PinTile extends ConsumerWidget {
+  const _PinTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(isPinEnabledProvider).valueOrNull ?? false;
+    return SwitchListTile(
+      secondary: const Icon(Icons.pin_outlined),
+      title: const Text('Desbloqueio por PIN'),
+      subtitle: const Text('Abrir o cofre com um PIN'),
+      value: enabled,
+      onChanged: (value) async {
+        final auth = ref.read(authControllerProvider.notifier);
+        if (value) {
+          final pin = await promptForPassword(
+            context,
+            title: 'Criar PIN',
+            fieldLabel: 'PIN',
+            actionLabel: 'Salvar',
+            requireConfirm: true,
+            minLength: 4,
+            keyboardType: TextInputType.number,
+          );
+          if (pin != null) await auth.enrollPin(pin);
+        } else {
+          await auth.disablePin();
+        }
+      },
+    );
   }
 }
 

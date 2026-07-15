@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/crypto/crypto_failure.dart';
@@ -85,6 +87,70 @@ class AuthController extends AsyncNotifier<AuthState> {
   String _formatDuration(Duration d) {
     if (d.inMinutes >= 1) return '${d.inMinutes} min';
     return '${d.inSeconds.clamp(1, 59)} s';
+  }
+
+  /// Cadastra um PIN de desbloqueio rápido, embrulhando a DEK atual sob ele.
+  /// Requer o cofre destravado.
+  Future<void> enrollPin(String pin) async {
+    final session = ref.read(vaultSessionProvider);
+    if (session == null) {
+      throw StateError('É preciso estar com o cofre destravado.');
+    }
+    final dek = await session.keys.dataKey.extractBytes();
+    final material = await ref.read(vaultKeyServiceProvider).wrapDek(
+          Uint8List.fromList(dek),
+          pin,
+          params: ref.read(vaultKdfParamsProvider),
+        );
+    await ref.read(pinCredentialStoreProvider).write(material);
+    ref.invalidate(isPinEnabledProvider);
+  }
+
+  /// Remove o PIN de desbloqueio rápido.
+  Future<void> disablePin() async {
+    await ref.read(pinCredentialStoreProvider).clear();
+    ref.invalidate(isPinEnabledProvider);
+  }
+
+  /// Destrava o cofre pelo PIN. Sujeito à mesma proteção de força bruta.
+  Future<void> unlockWithPin(String pin) async {
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
+    state = await AsyncValue.guard(() async {
+      final guard = ref.read(bruteForceGuardProvider);
+      final blocked = await guard.currentLockout();
+      if (blocked != null) {
+        return AuthState(
+          VaultStatus.locked,
+          error: 'Muitas tentativas. Aguarde ${_formatDuration(blocked)}.',
+        );
+      }
+
+      final material = await ref.read(pinCredentialStoreProvider).read();
+      if (material == null) {
+        return const AuthState(VaultStatus.locked, error: 'PIN não configurado.');
+      }
+
+      final UnlockedVaultKeys keys;
+      try {
+        keys = await ref.read(vaultKeyServiceProvider).unlock(pin, material);
+      } on AuthenticationFailure {
+        await guard.recordFailure();
+        final penalty = await guard.currentLockout();
+        return AuthState(
+          VaultStatus.locked,
+          error: penalty != null
+              ? 'PIN incorreto. Bloqueado por ${_formatDuration(penalty)}.'
+              : 'PIN incorreto.',
+        );
+      }
+
+      await guard.recordSuccess();
+      final db = await ref.read(vaultDatabaseFactoryProvider).open(keys);
+      ref
+          .read(vaultSessionProvider.notifier)
+          .open(VaultSession(database: db, keys: keys));
+      return const AuthState(VaultStatus.unlocked);
+    });
   }
 
   /// Trava o cofre (descarta chaves, fecha o banco).
