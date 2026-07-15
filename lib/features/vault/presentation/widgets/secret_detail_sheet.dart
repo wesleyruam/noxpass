@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../totp/presentation/totp_code_tile.dart';
 import '../../data/vault_providers.dart';
 import '../../domain/entities/secret.dart';
 import '../../domain/entities/secret_payload.dart';
@@ -125,6 +126,11 @@ class _SecretDetailSheetState extends ConsumerState<SecretDetailSheet> {
             ),
           if (payload[SecretPayload.notes] case final notes?)
             _FieldTile(label: 'Observações', value: notes),
+          if (payload[SecretPayload.totp] case final totp?)
+            TotpCodeTile(
+              rawSecret: totp,
+              onCopy: (code) => _copy('Código 2FA', code),
+            ),
           const SizedBox(height: 8),
           TextButton.icon(
             onPressed: _moveToTrash,

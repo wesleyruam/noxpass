@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/security/password_strength_meter.dart';
 import '../../../generator/domain/password_generator.dart';
+import '../../../totp/domain/totp.dart';
 import '../../data/vault_providers.dart';
 import '../../domain/entities/secret.dart';
 import '../../domain/entities/secret_payload.dart';
@@ -38,6 +39,7 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
   late final TextEditingController _password;
   late final TextEditingController _url;
   late final TextEditingController _notes;
+  late final TextEditingController _totp;
   late SecretType _type;
   bool _obscure = true;
   bool _saving = false;
@@ -52,6 +54,7 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
     _password = TextEditingController(text: s?.payload[SecretPayload.password] ?? '');
     _url = TextEditingController(text: s?.payload[SecretPayload.url] ?? '');
     _notes = TextEditingController(text: s?.payload[SecretPayload.notes] ?? '');
+    _totp = TextEditingController(text: s?.payload[SecretPayload.totp] ?? '');
   }
 
   @override
@@ -61,6 +64,7 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
     _password.dispose();
     _url.dispose();
     _notes.dispose();
+    _totp.dispose();
     super.dispose();
   }
 
@@ -83,6 +87,7 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
       if (_password.text.isNotEmpty) SecretPayload.password: _password.text,
       if (_url.text.trim().isNotEmpty) SecretPayload.url: _url.text.trim(),
       if (_notes.text.trim().isNotEmpty) SecretPayload.notes: _notes.text.trim(),
+      if (_totp.text.trim().isNotEmpty) SecretPayload.totp: _totp.text.trim(),
     });
     final draft = SecretDraft(type: _type, title: _title.text.trim(), payload: payload);
 
@@ -191,6 +196,22 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
                   labelText: 'URL',
                   prefixIcon: Icon(Icons.link),
                 ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _totp,
+                decoration: const InputDecoration(
+                  labelText: 'Chave 2FA (TOTP)',
+                  helperText: 'Segredo Base32 ou URI otpauth://',
+                  prefixIcon: Icon(Icons.timer_outlined),
+                ),
+                validator: (value) {
+                  final v = (value ?? '').trim();
+                  if (v.isNotEmpty && TotpConfig.tryParse(v) == null) {
+                    return 'Chave 2FA inválida.';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
               TextFormField(

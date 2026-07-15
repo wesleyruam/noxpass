@@ -31,6 +31,9 @@ class SecretPayload {
   static const String url = 'url';
   static const String notes = 'notes';
 
+  /// Segredo TOTP (Base32 ou URI `otpauth://`) para gerar códigos 2FA.
+  static const String totp = 'totp';
+
   String? operator [](String key) => fields[key];
 
   Map<String, dynamic> toJson() => Map<String, dynamic>.from(fields);
