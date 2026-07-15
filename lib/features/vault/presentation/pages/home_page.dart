@@ -9,6 +9,7 @@ import '../../../security/presentation/widgets/vault_health_card.dart';
 import '../../domain/entities/secret.dart';
 import '../../domain/entities/secret_payload.dart';
 import '../secrets_providers.dart';
+import '../widgets/category_icon.dart';
 import '../widgets/secret_detail_sheet.dart';
 import '../widgets/secret_form_sheet.dart';
 
@@ -26,6 +27,7 @@ class HomePage extends ConsumerWidget {
     final secretsAsync = ref.watch(secretsListProvider);
     final query = ref.watch(_searchQueryProvider).trim().toLowerCase();
     final tagFilter = ref.watch(_tagFilterProvider);
+    final categories = ref.watch(categoriesProvider).valueOrNull ?? const [];
 
     return Scaffold(
       appBar: AppBar(
@@ -104,6 +106,48 @@ class HomePage extends ConsumerWidget {
                       .where((s) => matchesQuery(s) && matchesTag(s))
                       .toList();
 
+                  // Agrupa por categoria (ordenadas; sem categoria por último).
+                  final catById = {for (final c in categories) c.id: c};
+                  final groups = <String?, List<Secret>>{};
+                  for (final s in filtered) {
+                    final key = (s.categoryId != null &&
+                            catById.containsKey(s.categoryId))
+                        ? s.categoryId
+                        : null;
+                    groups.putIfAbsent(key, () => []).add(s);
+                  }
+                  final catKeys = groups.keys.whereType<String>().toList()
+                    ..sort((a, b) {
+                      final ca = catById[a]!, cb = catById[b]!;
+                      final byOrder = ca.sortOrder.compareTo(cb.sortOrder);
+                      return byOrder != 0
+                          ? byOrder
+                          : ca.name
+                              .toLowerCase()
+                              .compareTo(cb.name.toLowerCase());
+                    });
+                  final onlyUncategorized =
+                      catKeys.isEmpty && groups.containsKey(null);
+
+                  // Achata em cabeçalhos de seção + tiles.
+                  final entries = <Object>[];
+                  for (final key in catKeys) {
+                    final c = catById[key]!;
+                    entries
+                      ..add(_Header(c.name, categoryIconFor(c.icon)))
+                      ..addAll(groups[key]!);
+                  }
+                  if (groups.containsKey(null)) {
+                    entries
+                      ..add(_Header(
+                        onlyUncategorized
+                            ? (tagFilter == null ? 'Cofre' : '#$tagFilter')
+                            : 'Sem categoria',
+                        null,
+                      ))
+                      ..addAll(groups[null]!);
+                  }
+
                   return Column(
                     children: [
                       if (tags.isNotEmpty)
@@ -120,17 +164,14 @@ class HomePage extends ConsumerWidget {
                             : ListView.builder(
                                 padding:
                                     const EdgeInsets.fromLTRB(12, 0, 12, 100),
-                                itemCount: filtered.length + 1,
+                                itemCount: entries.length,
                                 itemBuilder: (context, index) {
-                                  if (index == 0) {
-                                    return _SectionLabel(
-                                      tagFilter == null
-                                          ? 'Cofre'
-                                          : '#$tagFilter',
-                                    );
+                                  final entry = entries[index];
+                                  if (entry is _Header) {
+                                    return _SectionLabel(entry.label,
+                                        icon: entry.icon);
                                   }
-                                  return _SecretTile(
-                                      secret: filtered[index - 1]);
+                                  return _SecretTile(secret: entry as Secret);
                                 },
                               ),
                       ),
@@ -229,24 +270,46 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-/// Rótulo de seção em maiúsculas monoespaçadas (ex.: "COFRE").
+/// Item de cabeçalho de seção no fluxo da lista.
+class _Header {
+  const _Header(this.label, this.icon);
+  final String label;
+  final IconData? icon;
+}
+
+/// Rótulo de seção em maiúsculas monoespaçadas (ex.: "COFRE"), com ícone
+/// opcional (usado nos grupos de categoria).
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.text);
+  const _SectionLabel(this.text, {this.icon});
 
   final String text;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
+    final color = context.nox.textFaint;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
-      child: Text(
-        text.toUpperCase(),
-        style: context.mono(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: context.nox.textFaint,
-          letterSpacing: 2.4,
-        ),
+      padding: const EdgeInsets.fromLTRB(8, 14, 8, 10),
+      child: Row(
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 13, color: color),
+            const SizedBox(width: 6),
+          ],
+          Flexible(
+            child: Text(
+              text.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.mono(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: color,
+                letterSpacing: 2.4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -60,6 +60,13 @@ class SettingsPage extends ConsumerWidget {
                 ref.read(autoLockTimeoutProvider.notifier).state = duration,
           ),
           ListTile(
+            leading: const Icon(Icons.folder_outlined),
+            title: const Text('Categorias'),
+            subtitle: const Text('Criar, renomear e excluir'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.categoriesPath),
+          ),
+          ListTile(
             leading: const Icon(Icons.delete_outline),
             title: const Text('Lixeira'),
             subtitle: const Text('Itens excluídos (30 dias)'),

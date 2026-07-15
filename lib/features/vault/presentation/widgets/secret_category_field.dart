@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/theme/nox_colors.dart';
+import '../../../../shared/widgets/text_prompt.dart';
 import '../../data/vault_providers.dart';
 import '../secrets_providers.dart';
 import 'category_icon.dart';
@@ -78,7 +79,11 @@ class _CategoryPickerSheet extends ConsumerWidget {
   final ValueChanged<String?> onSelected;
 
   Future<void> _createNew(BuildContext context, WidgetRef ref) async {
-    final name = await _promptCategoryName(context);
+    final name = await promptForText(
+      context,
+      title: 'Nova categoria',
+      actionLabel: 'Criar',
+    );
     if (name == null || name.trim().isEmpty) return;
     final category =
         await ref.read(secretsRepositoryProvider).createCategory(name.trim());
@@ -229,32 +234,4 @@ class _CategoryRow extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Diálogo simples para nomear uma nova categoria.
-Future<String?> _promptCategoryName(BuildContext context) {
-  final controller = TextEditingController();
-  return showDialog<String>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Nova categoria'),
-      content: TextField(
-        controller: controller,
-        autofocus: true,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(labelText: 'Nome'),
-        onSubmitted: (v) => Navigator.of(context).pop(v),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancelar'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(controller.text),
-          child: const Text('Criar'),
-        ),
-      ],
-    ),
-  );
 }

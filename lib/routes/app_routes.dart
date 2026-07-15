@@ -20,4 +20,7 @@ abstract final class AppRoutes {
 
   static const String trash = 'trash';
   static const String trashPath = '/trash';
+
+  static const String categories = 'categories';
+  static const String categoriesPath = '/categories';
 }
