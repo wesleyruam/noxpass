@@ -49,17 +49,23 @@ class NoxPassWordmark extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
+    // Tipografia proporcional ao escudo, para a marca respirar.
+    final nameSize = shieldSize * 0.62;
+    final taglineSize = (shieldSize * 0.15).clamp(11.0, 16.0);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         NoxPassShield(size: shieldSize),
-        SizedBox(height: shieldSize * 0.28),
+        SizedBox(height: shieldSize * 0.24),
         // "Nox" no tom da marca + "Pass" na cor do texto do tema.
         Text.rich(
           TextSpan(
-            style: theme.textTheme.headlineMedium?.copyWith(
+            style: TextStyle(
+              fontSize: nameSize,
               fontWeight: FontWeight.w700,
-              letterSpacing: -0.5,
+              letterSpacing: -1,
+              height: 1,
             ),
             children: [
               TextSpan(
@@ -74,12 +80,13 @@ class NoxPassWordmark extends StatelessWidget {
           ),
         ),
         if (showTagline) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: shieldSize * 0.14),
           Text(
             'SUA PRIVACIDADE. SEU CONTROLE.',
-            style: theme.textTheme.labelSmall?.copyWith(
+            style: TextStyle(
+              fontSize: taglineSize,
               color: colors.onSurfaceVariant,
-              letterSpacing: 1.5,
+              letterSpacing: 1.8,
               fontWeight: FontWeight.w600,
             ),
           ),
