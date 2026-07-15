@@ -13,6 +13,7 @@ import '../features/vault/presentation/pages/categories_page.dart';
 import '../features/vault/presentation/pages/home_page.dart';
 import '../features/vault/presentation/pages/trash_page.dart';
 import 'app_routes.dart';
+import 'splash_gate.dart';
 
 /// Roteador raiz do NoxPass, com guardas de sessão baseadas no estado de
 /// autenticação: o usuário é sempre levado à tela coerente com o cofre
@@ -21,16 +22,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
   ref.onDispose(refresh.dispose);
   ref.listen(authControllerProvider, (_, _) => refresh.value++);
+  // A abertura da animação também dispara o re-cálculo das rotas.
+  ref.listen(splashGateProvider, (_, _) => refresh.value++);
 
   return GoRouter(
     initialLocation: AppRoutes.splashPath,
     refreshListenable: refresh,
     redirect: (context, state) {
       final auth = ref.read(authControllerProvider).valueOrNull;
+      final splashDone = ref.read(splashGateProvider);
       final location = state.matchedLocation;
 
-      // Ainda verificando se há cofre cadastrado: mantém na splash.
-      if (auth == null) {
+      // Enquanto verifica o cofre OU a animação de abertura não terminou,
+      // mantém o usuário na splash.
+      if (auth == null || !splashDone) {
         return location == AppRoutes.splashPath ? null : AppRoutes.splashPath;
       }
 

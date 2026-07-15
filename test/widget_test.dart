@@ -4,6 +4,7 @@ import 'package:noxpass/app.dart';
 import 'package:noxpass/core/crypto/vault_key_material.dart';
 import 'package:noxpass/features/authentication/data/auth_data_providers.dart';
 import 'package:noxpass/features/authentication/data/vault_material_store.dart';
+import 'package:noxpass/routes/splash_gate.dart';
 
 /// Sem material salvo: o app deve levar ao cadastro da senha mestra.
 class _EmptyMaterialStore implements VaultMaterialStore {
@@ -24,6 +25,9 @@ void main() {
       ProviderScope(
         overrides: [
           vaultMaterialStoreProvider.overrideWithValue(_EmptyMaterialStore()),
+          // Abre o portão da splash (a animação de abertura não é o foco
+          // deste teste de roteamento).
+          splashGateProvider.overrideWith((ref) => true),
         ],
         child: const NoxPassApp(),
       ),
