@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../shared/theme/nox_colors.dart';
 import '../../../totp/presentation/totp_code_tile.dart';
 import '../../data/vault_providers.dart';
 import '../../domain/entities/secret.dart';
 import '../../domain/entities/secret_payload.dart';
 import 'secret_form_sheet.dart';
 import 'secret_history_sheet.dart';
-import 'secret_type_icon.dart';
 
 /// Exibe os detalhes de um segredo com revelar/copiar seguros.
 class SecretDetailSheet extends ConsumerStatefulWidget {
@@ -21,7 +21,6 @@ class SecretDetailSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      showDragHandle: true,
       builder: (_) => SecretDetailSheet(secret: secret),
     );
   }
@@ -60,85 +59,132 @@ class _SecretDetailSheetState extends ConsumerState<SecretDetailSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final nox = context.nox;
     final secret = widget.secret;
     final payload = secret.payload;
+    final subtitle = payload[SecretPayload.username] ??
+        payload[SecretPayload.url] ??
+        '';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(child: Icon(iconForSecretType(secret.type))),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  secret.title,
-                  style: theme.textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w700),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: NoxTilePalette.forSeed(secret.title),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    NoxTilePalette.initials(secret.title),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 17,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        secret.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      if (subtitle.isNotEmpty)
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.mono(fontSize: 12, color: nox.textFaint),
+                        ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Histórico',
+                  icon: const Icon(Icons.history),
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await SecretHistorySheet.show(context, secret);
+                  },
+                ),
+                IconButton(
+                  tooltip: 'Editar',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                    await SecretFormSheet.show(context, existing: secret);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (payload[SecretPayload.username] case final user?)
+              _FieldTile(
+                label: 'Usuário',
+                value: user,
+                onCopy: () => _copy('Usuário', user),
+              ),
+            if (payload[SecretPayload.password] case final pass?)
+              _FieldTile(
+                label: 'Senha',
+                value: _revealPassword ? pass : '••••••••••••',
+                onCopy: () => _copy('Senha', pass),
+                trailing: IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
+                    _revealPassword ? Icons.visibility_off : Icons.visibility,
+                    size: 20,
+                  ),
+                  onPressed: () =>
+                      setState(() => _revealPassword = !_revealPassword),
                 ),
               ),
-              IconButton(
-                tooltip: 'Histórico',
-                icon: const Icon(Icons.history),
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await SecretHistorySheet.show(context, secret);
-                },
+            if (payload[SecretPayload.url] case final url?)
+              _FieldTile(
+                label: 'URL',
+                value: url,
+                onCopy: () => _copy('URL', url),
               ),
-              IconButton(
-                tooltip: 'Editar',
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await SecretFormSheet.show(context, existing: secret);
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (payload[SecretPayload.username] case final user?)
-            _FieldTile(
-              label: 'Usuário',
-              value: user,
-              onCopy: () => _copy('Usuário', user),
-            ),
-          if (payload[SecretPayload.password] case final pass?)
-            _FieldTile(
-              label: 'Senha',
-              value: _revealPassword ? pass : '••••••••••',
-              onCopy: () => _copy('Senha', pass),
-              trailing: IconButton(
-                icon: Icon(
-                  _revealPassword ? Icons.visibility_off : Icons.visibility,
+            if (payload[SecretPayload.notes] case final notes?)
+              _FieldTile(label: 'Observações', value: notes, mono: false),
+            if (payload[SecretPayload.totp] case final totp?)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: TotpCodeTile(
+                  rawSecret: totp,
+                  onCopy: (code) => _copy('Código 2FA', code),
                 ),
-                onPressed: () =>
-                    setState(() => _revealPassword = !_revealPassword),
+              ),
+            const SizedBox(height: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _moveToTrash,
+                style: TextButton.styleFrom(
+                  foregroundColor: theme.colorScheme.error,
+                ),
+                icon: const Icon(Icons.delete_outline, size: 20),
+                label: const Text('Mover para a lixeira'),
               ),
             ),
-          if (payload[SecretPayload.url] case final url?)
-            _FieldTile(
-              label: 'URL',
-              value: url,
-              onCopy: () => _copy('URL', url),
-            ),
-          if (payload[SecretPayload.notes] case final notes?)
-            _FieldTile(label: 'Observações', value: notes),
-          if (payload[SecretPayload.totp] case final totp?)
-            TotpCodeTile(
-              rawSecret: totp,
-              onCopy: (code) => _copy('Código 2FA', code),
-            ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: _moveToTrash,
-            style: TextButton.styleFrom(foregroundColor: theme.colorScheme.error),
-            icon: const Icon(Icons.delete_outline),
-            label: const Text('Mover para a lixeira'),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -150,27 +196,47 @@ class _FieldTile extends StatelessWidget {
     required this.value,
     this.onCopy,
     this.trailing,
+    this.mono = true,
   });
 
   final String label;
   final String value;
   final VoidCallback? onCopy;
   final Widget? trailing;
+  final bool mono;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+    final nox = context.nox;
+    final valueStyle = mono
+        ? context.mono(fontSize: 14, color: theme.colorScheme.onSurface)
+        : theme.textTheme.bodyMedium;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: nox.surface2,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: nox.border),
+      ),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: theme.textTheme.labelSmall),
-                const SizedBox(height: 2),
-                Text(value, style: theme.textTheme.bodyLarge),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: nox.textFaint,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(value, style: valueStyle),
               ],
             ),
           ),
@@ -178,7 +244,8 @@ class _FieldTile extends StatelessWidget {
           if (onCopy != null)
             IconButton(
               tooltip: 'Copiar',
-              icon: const Icon(Icons.copy_outlined),
+              visualDensity: VisualDensity.compact,
+              icon: Icon(Icons.copy_outlined, size: 20, color: nox.textDim),
               onPressed: onCopy,
             ),
         ],

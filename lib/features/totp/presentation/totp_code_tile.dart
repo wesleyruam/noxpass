@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../shared/theme/nox_colors.dart';
 import '../domain/totp.dart';
 
 /// Exibe o código TOTP atual de um segredo, atualizado a cada segundo, com um
@@ -64,21 +65,40 @@ class _TotpCodeTileState extends State<TotpCodeTile> {
     if (config == null) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+    final nox = context.nox;
+    final accent = theme.colorScheme.primary;
+    // Fica vermelho nos segundos finais para sinalizar a expiração.
+    final ringColor = _remaining <= 5 ? theme.colorScheme.error : accent;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: nox.surface2,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: nox.border),
+      ),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Código 2FA', style: theme.textTheme.labelSmall),
-                const SizedBox(height: 2),
                 Text(
-                  _code.isEmpty ? '——————' : _formatted,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    letterSpacing: 2,
+                  'Código 2FA',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: nox.textFaint,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _code.isEmpty ? '——— ———' : _formatted,
+                  style: context.mono(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                    letterSpacing: 3,
                   ),
                 ),
               ],
@@ -93,15 +113,21 @@ class _TotpCodeTileState extends State<TotpCodeTile> {
                 CircularProgressIndicator(
                   value: _remaining / config.period,
                   strokeWidth: 3,
+                  color: ringColor,
+                  backgroundColor: nox.surface3,
                 ),
-                Text('$_remaining', style: theme.textTheme.labelSmall),
+                Text(
+                  '$_remaining',
+                  style: context.mono(fontSize: 11, color: nox.textDim),
+                ),
               ],
             ),
           ),
           if (widget.onCopy != null)
             IconButton(
               tooltip: 'Copiar código',
-              icon: const Icon(Icons.copy_outlined),
+              visualDensity: VisualDensity.compact,
+              icon: Icon(Icons.copy_outlined, size: 20, color: nox.textDim),
               onPressed: _code.isEmpty ? null : () => widget.onCopy!(_code),
             ),
         ],

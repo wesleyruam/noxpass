@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../shared/theme/nox_colors.dart';
 import '../../../vault/domain/entities/secret.dart';
 import '../../../vault/presentation/widgets/secret_detail_sheet.dart';
-import '../../../vault/presentation/widgets/secret_type_icon.dart';
 import '../security_providers.dart';
 
 /// Lista os problemas de segurança do cofre (senhas fracas e reutilizadas).
@@ -111,10 +111,27 @@ class _IssueTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = NoxTilePalette.forSeed(secret.title);
     return ListTile(
-      leading: Icon(iconForSecretType(secret.type)),
+      leading: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(11),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          NoxTilePalette.initials(secret.title),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
+        ),
+      ),
       title: Text(secret.title),
-      trailing: const Icon(Icons.chevron_right),
+      trailing: Icon(Icons.chevron_right, color: context.nox.textFaint),
       onTap: () => SecretDetailSheet.show(context, secret),
     );
   }
