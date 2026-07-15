@@ -18,6 +18,18 @@ class _UnlockPageState extends ConsumerState<UnlockPage> {
   bool _obscure = true;
 
   @override
+  void initState() {
+    super.initState();
+    // Se houver biometria cadastrada, oferece o prompt assim que a tela abre.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final enabled = await ref.read(isBiometricEnabledProvider.future);
+      if (enabled && mounted) {
+        await ref.read(authControllerProvider.notifier).unlockWithBiometric();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _passwordController.dispose();
     super.dispose();
@@ -51,6 +63,8 @@ class _UnlockPageState extends ConsumerState<UnlockPage> {
     // Mensagem transitória (senha incorreta) vem no próprio estado.
     final error = authState.valueOrNull?.error;
     final pinEnabled = ref.watch(isPinEnabledProvider).valueOrNull ?? false;
+    final biometricEnabled =
+        ref.watch(isBiometricEnabledProvider).valueOrNull ?? false;
 
     return Scaffold(
       body: SafeArea(
@@ -100,6 +114,18 @@ class _UnlockPageState extends ConsumerState<UnlockPage> {
                           )
                         : const Text('Desbloquear'),
                   ),
+                  if (biometricEnabled) ...[
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: isLoading
+                          ? null
+                          : () => ref
+                              .read(authControllerProvider.notifier)
+                              .unlockWithBiometric(),
+                      icon: const Icon(Icons.fingerprint),
+                      label: const Text('Usar biometria'),
+                    ),
+                  ],
                   if (pinEnabled) ...[
                     const SizedBox(height: 8),
                     TextButton.icon(

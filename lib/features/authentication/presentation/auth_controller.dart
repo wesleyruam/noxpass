@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +9,7 @@ import '../../../core/di/crypto_providers.dart';
 import '../../../core/session/vault_session.dart';
 import '../../vault/data/builtin_categories.dart';
 import '../data/auth_data_providers.dart';
+import '../data/biometric_credential_store.dart';
 import '../domain/auth_state.dart';
 
 /// Orquestra o ciclo de acesso ao cofre: cadastro, unlock e lock.
@@ -145,6 +147,59 @@ class AuthController extends AsyncNotifier<AuthState> {
       }
 
       await guard.recordSuccess();
+      final db = await ref.read(vaultDatabaseFactoryProvider).open(keys);
+      ref
+          .read(vaultSessionProvider.notifier)
+          .open(VaultSession(database: db, keys: keys));
+      return const AuthState(VaultStatus.unlocked);
+    });
+  }
+
+  /// Cadastra a biometria: embrulha a DEK sob um segredo aleatório de alta
+  /// entropia guardado no armazenamento seguro. Requer o cofre destravado.
+  Future<void> enrollBiometric() async {
+    final session = ref.read(vaultSessionProvider);
+    if (session == null) {
+      throw StateError('É preciso estar com o cofre destravado.');
+    }
+    final dek = await session.keys.dataKey.extractBytes();
+    final secret = base64Encode(ref.read(secureRandomProvider).nextBytes(32));
+    final material = await ref.read(vaultKeyServiceProvider).wrapDek(
+          Uint8List.fromList(dek),
+          secret,
+          params: ref.read(vaultKdfParamsProvider),
+        );
+    await ref
+        .read(biometricCredentialStoreProvider)
+        .write(BiometricCredential(secret: secret, material: material));
+    ref.invalidate(isBiometricEnabledProvider);
+  }
+
+  Future<void> disableBiometric() async {
+    await ref.read(biometricCredentialStoreProvider).clear();
+    ref.invalidate(isBiometricEnabledProvider);
+  }
+
+  /// Destrava por biometria: confirma a identidade e, se ok, abre o cofre.
+  Future<void> unlockWithBiometric() async {
+    final credential = await ref.read(biometricCredentialStoreProvider).read();
+    if (credential == null) return;
+
+    final confirmed = await ref
+        .read(biometricAuthenticatorProvider)
+        .authenticate('Desbloquear o NoxPass');
+    if (!confirmed) {
+      state = const AsyncData(
+        AuthState(VaultStatus.locked, error: 'Biometria não confirmada.'),
+      );
+      return;
+    }
+
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
+    state = await AsyncValue.guard(() async {
+      final keys = await ref
+          .read(vaultKeyServiceProvider)
+          .unlock(credential.secret, credential.material);
       final db = await ref.read(vaultDatabaseFactoryProvider).open(keys);
       ref
           .read(vaultSessionProvider.notifier)

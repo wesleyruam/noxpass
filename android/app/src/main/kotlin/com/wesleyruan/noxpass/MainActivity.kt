@@ -1,5 +1,6 @@
 package com.wesleyruan.noxpass
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// FlutterFragmentActivity é exigido pelo local_auth (BiometricPrompt).
+class MainActivity : FlutterFragmentActivity()

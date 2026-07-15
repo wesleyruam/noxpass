@@ -37,6 +37,7 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => context.push(AppRoutes.securityPath),
           ),
           const _PinTile(),
+          const _BiometricTile(),
           _AutoLockTile(
             value: ref.watch(autoLockTimeoutProvider),
             onChanged: (duration) =>
@@ -177,6 +178,34 @@ class _PinTile extends ConsumerWidget {
           if (pin != null) await auth.enrollPin(pin);
         } else {
           await auth.disablePin();
+        }
+      },
+    );
+  }
+}
+
+class _BiometricTile extends ConsumerWidget {
+  const _BiometricTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final available =
+        ref.watch(isBiometricAvailableProvider).valueOrNull ?? false;
+    if (!available) return const SizedBox.shrink();
+
+    final enabled =
+        ref.watch(isBiometricEnabledProvider).valueOrNull ?? false;
+    return SwitchListTile(
+      secondary: const Icon(Icons.fingerprint),
+      title: const Text('Desbloqueio por biometria'),
+      subtitle: const Text('Abrir com digital ou rosto'),
+      value: enabled,
+      onChanged: (value) async {
+        final auth = ref.read(authControllerProvider.notifier);
+        if (value) {
+          await auth.enrollBiometric();
+        } else {
+          await auth.disableBiometric();
         }
       },
     );

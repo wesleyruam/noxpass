@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../core/crypto/kdf_params.dart';
+import 'biometric_authenticator.dart';
+import 'biometric_credential_store.dart';
 import 'brute_force_guard.dart';
 import 'pin_credential_store.dart';
 import 'vault_database_factory.dart';
@@ -43,4 +45,23 @@ final pinCredentialStoreProvider = Provider<PinCredentialStore>(
 /// Verdadeiro quando há um PIN configurado.
 final isPinEnabledProvider = FutureProvider<bool>(
   (ref) => ref.watch(pinCredentialStoreProvider).exists(),
+);
+
+/// Biometria.
+final biometricAuthenticatorProvider = Provider<BiometricAuthenticator>(
+  (ref) => BiometricAuthenticator(),
+);
+
+final biometricCredentialStoreProvider = Provider<BiometricCredentialStore>(
+  (ref) => SecureBiometricCredentialStore(ref.watch(secureStorageProvider)),
+);
+
+/// O dispositivo suporta biometria.
+final isBiometricAvailableProvider = FutureProvider<bool>(
+  (ref) => ref.watch(biometricAuthenticatorProvider).isAvailable(),
+);
+
+/// Há credencial biométrica cadastrada.
+final isBiometricEnabledProvider = FutureProvider<bool>(
+  (ref) => ref.watch(biometricCredentialStoreProvider).exists(),
 );
