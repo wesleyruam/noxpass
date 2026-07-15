@@ -23,7 +23,8 @@ dependencies:
   # --- Banco de dados (Drift + SQLCipher) ---
   drift: ^2.21.0
   sqlite3: ^2.4.6
-  sqlite3_flutter_libs: ^0.5.26
+  # SQLCipher substitui o sqlite3_flutter_libs (mesmo namespace nativo — não
+  # podem coexistir). Traz o SQLite com SQLCipher para cifrar o banco inteiro.
   sqlcipher_flutter_libs: ^0.6.4
   path_provider: ^2.1.5
   path: ^1.9.0
