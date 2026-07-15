@@ -10,6 +10,7 @@ import '../../domain/entities/secret.dart';
 import '../../domain/entities/secret_payload.dart';
 import '../../domain/entities/secret_type.dart';
 import '../secrets_providers.dart';
+import 'secret_category_field.dart';
 import 'secret_type_field.dart';
 import 'tag_editor.dart';
 
@@ -47,6 +48,7 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
   late SecretType _type;
   late bool _isFavorite;
   late List<String> _tags;
+  late String? _categoryId;
   bool _obscure = true;
   bool _saving = false;
 
@@ -57,6 +59,7 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
     _type = s?.type ?? SecretType.password;
     _isFavorite = s?.isFavorite ?? false;
     _tags = List<String>.from(s?.tags ?? const <String>[]);
+    _categoryId = s?.categoryId;
     _title = TextEditingController(text: s?.title ?? '');
     _username = TextEditingController(text: s?.payload[SecretPayload.username] ?? '');
     _password = TextEditingController(text: s?.payload[SecretPayload.password] ?? '');
@@ -117,8 +120,8 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
       payload: payload,
       isFavorite: _isFavorite,
       tags: _tags,
+      categoryId: _categoryId,
       // Preserva campos que ainda não têm UI de edição.
-      categoryId: existing?.categoryId,
       iconRef: existing?.iconRef,
     );
 
@@ -181,6 +184,11 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
               SecretTypeField(
                 value: _type,
                 onChanged: (t) => setState(() => _type = t),
+              ),
+              const SizedBox(height: 12),
+              SecretCategoryField(
+                categoryId: _categoryId,
+                onChanged: (id) => setState(() => _categoryId = id),
               ),
               const SizedBox(height: 12),
               TextFormField(

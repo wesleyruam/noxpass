@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,8 @@ import '../../../totp/presentation/totp_code_tile.dart';
 import '../../data/vault_providers.dart';
 import '../../domain/entities/secret.dart';
 import '../../domain/entities/secret_payload.dart';
+import '../secrets_providers.dart';
+import 'category_icon.dart';
 import 'secret_form_sheet.dart';
 import 'secret_history_sheet.dart';
 
@@ -80,6 +83,12 @@ class _SecretDetailSheetState extends ConsumerState<SecretDetailSheet> {
     final subtitle = payload[SecretPayload.username] ??
         payload[SecretPayload.url] ??
         '';
+    final category = secret.categoryId == null
+        ? null
+        : ref
+            .watch(categoriesProvider)
+            .valueOrNull
+            ?.firstWhereOrNull((c) => c.id == secret.categoryId);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
@@ -196,6 +205,35 @@ class _SecretDetailSheetState extends ConsumerState<SecretDetailSheet> {
                   onCopy: (code) => _copy('Código 2FA', code),
                 ),
               ),
+            if (category != null) ...[
+              const SizedBox(height: 14),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(categoryIconFor(category.icon),
+                          size: 15, color: theme.colorScheme.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        category.name,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             if (secret.tags.isNotEmpty) ...[
               const SizedBox(height: 14),
               Wrap(

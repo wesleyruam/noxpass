@@ -9,6 +9,9 @@ import 'package:uuid/uuid.dart';
 import '../../../core/crypto/cipher_service.dart';
 import '../../../core/crypto/encrypted_data.dart';
 import '../../../core/database/app_database.dart';
+// Prefixo para não colidir com a data class gerada `Category` (linha da
+// tabela) — assim conseguimos nomear ambas ao mapear.
+import '../domain/entities/category.dart' as domain;
 import '../domain/entities/secret.dart';
 import '../domain/entities/secret_payload.dart';
 import '../domain/entities/secret_type.dart';
@@ -246,6 +249,65 @@ class SecretsRepositoryImpl implements SecretsRepository {
       );
     });
   }
+
+  // --- Categorias ----------------------------------------------------------
+
+  @override
+  Stream<List<domain.Category>> watchCategories() {
+    final query = _db.select(_db.categories)
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.sortOrder),
+        (t) => OrderingTerm(expression: t.name),
+      ]);
+    return query.watch().map((rows) => rows.map(_toCategory).toList());
+  }
+
+  @override
+  Future<domain.Category> createCategory(String name, {String? icon}) async {
+    final now = _now();
+    final id = _uuid.v4();
+    await _db.into(_db.categories).insert(
+          CategoriesCompanion.insert(
+            id: id,
+            name: name.trim(),
+            icon: Value(icon),
+            isBuiltIn: const Value(false),
+            // Após as nativas (0..N); múltiplas custom desempatam pelo nome.
+            sortOrder: const Value(1000),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    final row = await (_db.select(_db.categories)..where((t) => t.id.equals(id)))
+        .getSingle();
+    return _toCategory(row);
+  }
+
+  @override
+  Future<void> renameCategory(String id, String name) async {
+    await (_db.update(_db.categories)..where((t) => t.id.equals(id))).write(
+      CategoriesCompanion(name: Value(name.trim()), updatedAt: Value(_now())),
+    );
+  }
+
+  @override
+  Future<void> deleteCategory(String id) async {
+    await _db.transaction(() async {
+      // Desvincula os segredos antes de remover (a FK é nullable).
+      await (_db.update(_db.secrets)..where((t) => t.categoryId.equals(id)))
+          .write(const SecretsCompanion(categoryId: Value(null)));
+      await (_db.delete(_db.categories)..where((t) => t.id.equals(id))).go();
+    });
+  }
+
+  domain.Category _toCategory(Category row) => domain.Category(
+        id: row.id,
+        name: row.name,
+        icon: row.icon,
+        colorValue: row.colorValue,
+        isBuiltIn: row.isBuiltIn,
+        sortOrder: row.sortOrder,
+      );
 
   // --- Internos ------------------------------------------------------------
 

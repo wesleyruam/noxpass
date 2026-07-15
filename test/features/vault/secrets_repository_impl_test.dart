@@ -195,4 +195,41 @@ void main() {
       expect((await repo.getFavorites()).single.id, s.id);
     });
   });
+
+  group('categorias', () {
+    test('cria e lista categorias', () async {
+      final created = await repo.createCategory('Trabalho', icon: 'work');
+      expect(created.name, 'Trabalho');
+      expect(created.isBuiltIn, isFalse);
+
+      final list = await repo.watchCategories().first;
+      expect(list.map((c) => c.name), contains('Trabalho'));
+    });
+
+    test('renomeia categoria', () async {
+      final c = await repo.createCategory('Antigo');
+      await repo.renameCategory(c.id, 'Novo');
+      final list = await repo.watchCategories().first;
+      expect(list.single.name, 'Novo');
+    });
+
+    test('apagar categoria desvincula os segredos (categoryId vira null)',
+        () async {
+      final c = await repo.createCategory('Bancos');
+      final s = await repo.create(
+        SecretDraft(
+          type: SecretType.password,
+          title: 'Nubank',
+          categoryId: c.id,
+          payload: const SecretPayload({SecretPayload.password: 'senha-forte-123'}),
+        ),
+      );
+      expect((await repo.getById(s.id))!.categoryId, c.id);
+
+      await repo.deleteCategory(c.id);
+
+      expect((await repo.getById(s.id))!.categoryId, isNull);
+      expect(await repo.watchCategories().first, isEmpty);
+    });
+  });
 }

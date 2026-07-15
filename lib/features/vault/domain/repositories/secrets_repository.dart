@@ -1,3 +1,4 @@
+import '../entities/category.dart';
 import '../entities/secret.dart';
 
 /// Contrato de persistência dos segredos.
@@ -46,4 +47,18 @@ abstract interface class SecretsRepository {
   /// Restaura o conteúdo de uma versão anterior, registrando a versão atual
   /// no histórico antes de sobrescrever.
   Future<void> restoreVersion(String secretId, String versionId);
+
+  // --- Categorias ----------------------------------------------------------
+
+  /// Fluxo reativo das categorias, ordenadas por `sortOrder` e nome.
+  Stream<List<Category>> watchCategories();
+
+  /// Cria uma categoria personalizada e a retorna.
+  Future<Category> createCategory(String name, {String? icon});
+
+  /// Renomeia uma categoria existente.
+  Future<void> renameCategory(String id, String name);
+
+  /// Remove uma categoria; os segredos que a usavam ficam sem categoria.
+  Future<void> deleteCategory(String id);
 }
