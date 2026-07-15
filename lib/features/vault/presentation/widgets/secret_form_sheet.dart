@@ -8,6 +8,7 @@ import '../../data/vault_providers.dart';
 import '../../domain/entities/secret.dart';
 import '../../domain/entities/secret_payload.dart';
 import '../../domain/entities/secret_type.dart';
+import 'secret_type_field.dart';
 
 /// Folha (bottom sheet) para criar ou editar um segredo.
 ///
@@ -131,13 +132,9 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
                     ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<SecretType>(
-                initialValue: _type,
-                decoration: const InputDecoration(labelText: 'Tipo'),
-                items: SecretType.values
-                    .map((t) => DropdownMenuItem(value: t, child: Text(t.name)))
-                    .toList(),
-                onChanged: (v) => setState(() => _type = v ?? _type),
+              SecretTypeField(
+                value: _type,
+                onChanged: (t) => setState(() => _type = t),
               ),
               const SizedBox(height: 12),
               TextFormField(
