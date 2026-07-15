@@ -61,5 +61,30 @@ dev_dependencies:
   # --- Testes ---
   mocktail: ^1.0.4
 
+  # --- Ícones do app (launcher) ---
+  flutter_launcher_icons: ^0.14.1
+
 flutter:
   uses-material-design: true
+  assets:
+    - assets/logo/
+
+# Ícones de launcher gerados a partir do escudo do NoxPass.
+# Regerar com: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/logo/icon_full.png"
+  # Android: ícone adaptativo (fundo + primeiro plano na zona segura).
+  android: "ic_launcher"
+  adaptive_icon_background: "#0E0E15"
+  adaptive_icon_foreground: "assets/logo/icon_foreground.png"
+  min_sdk_android: 24
+  # iOS não permite transparência: usa a versão com fundo.
+  ios: true
+  remove_alpha_ios: true
+  # Desktop e web.
+  windows:
+    generate: true
+    image_path: "assets/logo/icon_full.png"
+  macos:
+    generate: true
+    image_path: "assets/logo/icon_full.png"

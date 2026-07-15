@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/crypto/crypto_failure.dart';
 import '../../../../routes/app_routes.dart';
+import '../../../../shared/widgets/noxpass_logo.dart';
 import '../../../../shared/widgets/password_prompt.dart';
 import '../../../authentication/data/auth_data_providers.dart';
 import '../../../authentication/presentation/auth_controller.dart';
@@ -67,9 +68,10 @@ class SettingsPage extends ConsumerWidget {
           const Divider(),
           const _SectionHeader('Sobre'),
           const AboutListTile(
-            icon: Icon(Icons.shield_outlined),
+            icon: NoxPassShield(size: 32),
             applicationName: 'NoxPass',
             applicationVersion: 'Versão 1.0.0',
+            applicationIcon: NoxPassShield(size: 56),
             applicationLegalese: 'Desenvolvido por Wesley Ruan',
             aboutBoxChildren: [
               SizedBox(height: 12),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../shared/widgets/noxpass_logo.dart';
 import '../../../../shared/widgets/password_prompt.dart';
 import '../../data/auth_data_providers.dart';
 import '../auth_controller.dart';
@@ -57,7 +58,6 @@ class _UnlockPageState extends ConsumerState<UnlockPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
     // Mensagem transitória (senha incorreta) vem no próprio estado.
@@ -76,7 +76,7 @@ class _UnlockPageState extends ConsumerState<UnlockPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.lock_outline, size: 56, color: colors.primary),
+                  const NoxPassShield(size: 72),
                   const SizedBox(height: 20),
                   Text(
                     'Desbloquear NoxPass',

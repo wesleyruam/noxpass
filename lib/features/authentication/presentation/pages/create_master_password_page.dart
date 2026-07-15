@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/security/password_strength_meter.dart';
+import '../../../../shared/widgets/noxpass_logo.dart';
 import '../auth_controller.dart';
 
 /// Cadastro da senha mestra (primeiro uso). Deixa claro que, num modelo
@@ -64,6 +65,11 @@ class _CreateMasterPasswordPageState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const Align(
+                      alignment: Alignment.center,
+                      child: NoxPassShield(size: 64),
+                    ),
+                    const SizedBox(height: 24),
                     Text(
                       'Defina sua senha mestra',
                       style: theme.textTheme.headlineSmall
