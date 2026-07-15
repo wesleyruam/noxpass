@@ -28,6 +28,11 @@ class HomePage extends ConsumerWidget {
         title: const Text('NoxPass'),
         actions: [
           IconButton(
+            tooltip: 'Ajustes',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push(AppRoutes.settingsPath),
+          ),
+          IconButton(
             tooltip: 'Travar cofre',
             icon: const Icon(Icons.lock_outline),
             onPressed: () => ref.read(authControllerProvider.notifier).lock(),

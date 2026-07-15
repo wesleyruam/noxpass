@@ -19,7 +19,9 @@ android {
         applicationId = "com.wesleyruan.noxpass"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Elevado para atender aos plugins (file_picker/lifecycle) e ao
+        // SQLCipher. Android 7.0+ cobre a vasta maioria dos aparelhos.
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
