@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🛡️ NoxPass
+<img src="assets/logo/noxpass_shield.png" width="128" alt="NoxPass">
+
+# NoxPass
 
 **Sua privacidade. Seu controle. Suas senhas.**
 
@@ -133,3 +135,11 @@ Fica fora da suíte padrão (em `tool/`, não em `test/`), então não interfere
 ## Licença & autoria
 
 Desenvolvido por **Wesley Ruan**.
+
+---
+
+<div align="center">
+  <img src="assets/logo/noxpass_shield.png" width="64" alt="">
+  <br>
+  <sub><b>NoxPass</b> · Sua privacidade. Seu controle. Suas senhas.</sub>
+</div>
