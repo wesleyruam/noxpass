@@ -9,7 +9,9 @@ import '../../data/vault_providers.dart';
 import '../../domain/entities/secret.dart';
 import '../../domain/entities/secret_payload.dart';
 import '../../domain/entities/secret_type.dart';
+import '../secrets_providers.dart';
 import 'secret_type_field.dart';
+import 'tag_editor.dart';
 
 /// Folha (bottom sheet) para criar ou editar um segredo.
 ///
@@ -44,6 +46,7 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
   late final TextEditingController _totp;
   late SecretType _type;
   late bool _isFavorite;
+  late List<String> _tags;
   bool _obscure = true;
   bool _saving = false;
 
@@ -53,6 +56,7 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
     final s = widget.existing;
     _type = s?.type ?? SecretType.password;
     _isFavorite = s?.isFavorite ?? false;
+    _tags = List<String>.from(s?.tags ?? const <String>[]);
     _title = TextEditingController(text: s?.title ?? '');
     _username = TextEditingController(text: s?.payload[SecretPayload.username] ?? '');
     _password = TextEditingController(text: s?.payload[SecretPayload.password] ?? '');
@@ -70,6 +74,20 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
     _notes.dispose();
     _totp.dispose();
     super.dispose();
+  }
+
+  /// Tags distintas já usadas no cofre, para sugerir no editor.
+  List<String> _tagSuggestions() {
+    final secrets = ref.read(secretsListProvider).valueOrNull ?? const [];
+    final seen = <String, String>{}; // chave normalizada -> exibição
+    for (final secret in secrets) {
+      for (final tag in secret.tags) {
+        seen.putIfAbsent(tag.toLowerCase(), () => tag);
+      }
+    }
+    final result = seen.values.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return result;
   }
 
   Future<void> _generate() async {
@@ -98,10 +116,10 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
       title: _title.text.trim(),
       payload: payload,
       isFavorite: _isFavorite,
+      tags: _tags,
       // Preserva campos que ainda não têm UI de edição.
       categoryId: existing?.categoryId,
       iconRef: existing?.iconRef,
-      tags: existing?.tags ?? const <String>[],
     );
 
     try {
@@ -246,6 +264,12 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
                   labelText: 'Observações',
                   prefixIcon: Icon(Icons.notes),
                 ),
+              ),
+              const SizedBox(height: 16),
+              TagEditor(
+                tags: _tags,
+                suggestions: _tagSuggestions(),
+                onChanged: (tags) => setState(() => _tags = tags),
               ),
               const SizedBox(height: 24),
               FilledButton(

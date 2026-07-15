@@ -196,6 +196,29 @@ class _SecretDetailSheetState extends ConsumerState<SecretDetailSheet> {
                   onCopy: (code) => _copy('Código 2FA', code),
                 ),
               ),
+            if (secret.tags.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final tag in secret.tags)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: nox.surface3,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '#$tag',
+                        style: theme.textTheme.labelMedium
+                            ?.copyWith(color: nox.textDim),
+                      ),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 16),
             Align(
               alignment: Alignment.centerLeft,

@@ -15,6 +15,9 @@ import '../widgets/secret_form_sheet.dart';
 /// Filtro de busca da home (client-side sobre a lista já decifrada).
 final _searchQueryProvider = StateProvider.autoDispose<String>((ref) => '');
 
+/// Tag selecionada para filtrar a lista (null = todas).
+final _tagFilterProvider = StateProvider.autoDispose<String?>((ref) => null);
+
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
@@ -22,6 +25,7 @@ class HomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final secretsAsync = ref.watch(secretsListProvider);
     final query = ref.watch(_searchQueryProvider).trim().toLowerCase();
+    final tagFilter = ref.watch(_tagFilterProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -70,32 +74,155 @@ class HomePage extends ConsumerWidget {
                 error: (error, _) =>
                     Center(child: Text('Erro ao carregar: $error')),
                 data: (secrets) {
-                  final filtered = query.isEmpty
-                      ? secrets
-                      : secrets
-                          .where((s) => s.title.toLowerCase().contains(query))
-                          .toList();
-
                   if (secrets.isEmpty) return const _EmptyState();
-                  if (filtered.isEmpty) {
-                    return const Center(
-                      child: Text('Nenhum resultado para a busca.'),
-                    );
+
+                  // Tags distintas (preserva a grafia original).
+                  final tagMap = <String, String>{};
+                  for (final s in secrets) {
+                    for (final t in s.tags) {
+                      tagMap.putIfAbsent(t.toLowerCase(), () => t);
+                    }
                   }
-                  return ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 100),
-                    itemCount: filtered.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return const _SectionLabel('Cofre');
-                      }
-                      return _SecretTile(secret: filtered[index - 1]);
-                    },
+                  final tags = tagMap.values.toList()
+                    ..sort((a, b) =>
+                        a.toLowerCase().compareTo(b.toLowerCase()));
+
+                  bool matchesQuery(Secret s) {
+                    if (query.isEmpty) return true;
+                    final hay = [
+                      s.title,
+                      s.payload[SecretPayload.username] ?? '',
+                      s.payload[SecretPayload.url] ?? '',
+                    ].join(' ').toLowerCase();
+                    return hay.contains(query);
+                  }
+
+                  bool matchesTag(Secret s) =>
+                      tagFilter == null || s.tags.contains(tagFilter);
+
+                  final filtered = secrets
+                      .where((s) => matchesQuery(s) && matchesTag(s))
+                      .toList();
+
+                  return Column(
+                    children: [
+                      if (tags.isNotEmpty)
+                        _TagFilterBar(
+                          tags: tags,
+                          selected: tagFilter,
+                          onSelected: (t) => ref
+                              .read(_tagFilterProvider.notifier)
+                              .state = t,
+                        ),
+                      Expanded(
+                        child: filtered.isEmpty
+                            ? const Center(child: Text('Nenhum resultado.'))
+                            : ListView.builder(
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 0, 12, 100),
+                                itemCount: filtered.length + 1,
+                                itemBuilder: (context, index) {
+                                  if (index == 0) {
+                                    return _SectionLabel(
+                                      tagFilter == null
+                                          ? 'Cofre'
+                                          : '#$tagFilter',
+                                    );
+                                  }
+                                  return _SecretTile(
+                                      secret: filtered[index - 1]);
+                                },
+                              ),
+                      ),
+                    ],
                   );
                 },
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Barra horizontal de filtro por tag. A primeira chip ("Todas") limpa.
+class _TagFilterBar extends StatelessWidget {
+  const _TagFilterBar({
+    required this.tags,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<String> tags;
+  final String? selected;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        children: [
+          _FilterChip(
+            label: 'Todas',
+            selected: selected == null,
+            onTap: () => onSelected(null),
+          ),
+          for (final tag in tags)
+            _FilterChip(
+              label: '#$tag',
+              selected: selected == tag,
+              onTap: () => onSelected(selected == tag ? null : tag),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final nox = context.nox;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected
+                ? theme.colorScheme.primary.withValues(alpha: 0.16)
+                : nox.surface2,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected ? theme.colorScheme.primary : nox.border,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: selected ? theme.colorScheme.primary : nox.textDim,
+            ),
+          ),
         ),
       ),
     );
