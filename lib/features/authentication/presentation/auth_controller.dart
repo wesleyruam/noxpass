@@ -1,0 +1,77 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/crypto/crypto_failure.dart';
+import '../../../core/crypto/unlocked_vault_keys.dart';
+import '../../../core/di/crypto_providers.dart';
+import '../../../core/session/vault_session.dart';
+import '../../vault/data/builtin_categories.dart';
+import '../data/auth_data_providers.dart';
+import '../domain/auth_state.dart';
+
+/// Orquestra o ciclo de acesso ao cofre: cadastro, unlock e lock.
+///
+/// É o único lugar que conecta senha mestra → chaves → banco cifrado → sessão.
+/// Estado assíncrono para a UI refletir carregamento e erros diretamente.
+class AuthController extends AsyncNotifier<AuthState> {
+  @override
+  Future<AuthState> build() async {
+    final exists = await ref.read(vaultMaterialStoreProvider).exists();
+    return AuthState(
+      exists ? VaultStatus.locked : VaultStatus.unregistered,
+    );
+  }
+
+  /// Cria o cofre a partir de uma senha mestra nova e já o destrava.
+  Future<void> createVault(String masterPassword) async {
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
+    state = await AsyncValue.guard(() async {
+      final creation = await ref
+          .read(vaultKeyServiceProvider)
+          .createVault(masterPassword, params: ref.read(vaultKdfParamsProvider));
+      await ref.read(vaultMaterialStoreProvider).write(creation.material);
+      final db = await ref.read(vaultDatabaseFactoryProvider).open(creation.keys);
+      await seedBuiltInCategories(db);
+      ref
+          .read(vaultSessionProvider.notifier)
+          .open(VaultSession(database: db, keys: creation.keys));
+      return const AuthState(VaultStatus.unlocked);
+    });
+  }
+
+  /// Destrava um cofre existente. Senha incorreta não é erro fatal: volta a
+  /// [VaultStatus.locked] com uma mensagem.
+  Future<void> unlock(String masterPassword) async {
+    state = const AsyncLoading<AuthState>().copyWithPrevious(state);
+    state = await AsyncValue.guard(() async {
+      final material = await ref.read(vaultMaterialStoreProvider).read();
+      if (material == null) {
+        return const AuthState(VaultStatus.unregistered);
+      }
+
+      final UnlockedVaultKeys keys;
+      try {
+        keys = await ref.read(vaultKeyServiceProvider).unlock(masterPassword, material);
+      } on AuthenticationFailure {
+        return const AuthState(
+          VaultStatus.locked,
+          error: 'Senha mestra incorreta.',
+        );
+      }
+
+      final db = await ref.read(vaultDatabaseFactoryProvider).open(keys);
+      ref
+          .read(vaultSessionProvider.notifier)
+          .open(VaultSession(database: db, keys: keys));
+      return const AuthState(VaultStatus.unlocked);
+    });
+  }
+
+  /// Trava o cofre (descarta chaves, fecha o banco).
+  Future<void> lock() async {
+    await ref.read(vaultSessionProvider.notifier).lock();
+    state = const AsyncData(AuthState(VaultStatus.locked));
+  }
+}
+
+final authControllerProvider =
+    AsyncNotifierProvider<AuthController, AuthState>(AuthController.new);

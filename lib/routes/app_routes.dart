@@ -1,5 +1,14 @@
 /// Nomes e caminhos de rota centralizados (evita strings mágicas na UI).
 abstract final class AppRoutes {
-  static const String welcome = 'welcome';
-  static const String welcomePath = '/';
+  static const String splash = 'splash';
+  static const String splashPath = '/';
+
+  static const String create = 'create';
+  static const String createPath = '/create';
+
+  static const String unlock = 'unlock';
+  static const String unlockPath = '/unlock';
+
+  static const String home = 'home';
+  static const String homePath = '/home';
 }

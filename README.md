@@ -60,7 +60,8 @@ lib/
 - [x] Camada de criptografia completa, com testes unitários
 - [x] Tema M3 (claro/escuro), rotas e injeção de dependência
 - [x] Banco Drift + SQLCipher (envelope por campo, lixeira e histórico)
-- [ ] Onboarding (cadastro da senha mestra) e CRUD do cofre na UI
+- [x] Onboarding (senha mestra), lock/unlock e CRUD do cofre na UI
+- [ ] Biometria, auto-lock, backup e dashboard com estatísticas
 
 ## Rodando
 
