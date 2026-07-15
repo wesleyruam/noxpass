@@ -62,7 +62,8 @@ lib/
 - [x] Banco Drift + SQLCipher (envelope por campo, lixeira e histórico)
 - [x] Onboarding (senha mestra), lock/unlock e CRUD do cofre na UI
 - [x] Auto-lock, dashboard de segurança, backup (export/import) e lixeira/histórico
-- [ ] Biometria/PIN e proteção contra brute-force
+- [x] Desbloqueio rápido por PIN e biometria, com proteção contra força bruta
+- [ ] TOTP, passkeys, sincronização e importadores (Bitwarden/KeePass/CSV)
 
 ## Rodando
 
