@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,9 +9,11 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/crypto/crypto_failure.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../shared/widgets/password_prompt.dart';
 import '../../../backup/data/backup_providers.dart';
+import '../../../backup/domain/backup_service.dart';
 import '../settings_providers.dart';
 
 /// Ajustes: segurança, backup e informações do app.
@@ -50,6 +53,12 @@ class SettingsPage extends ConsumerWidget {
             title: const Text('Exportar cofre'),
             subtitle: const Text('Arquivo .backup criptografado'),
             onTap: () => _export(context, ref),
+          ),
+          ListTile(
+            leading: const Icon(Icons.download_outlined),
+            title: const Text('Importar backup'),
+            subtitle: const Text('Restaurar de um arquivo .backup'),
+            onTap: () => _import(context, ref),
           ),
           const Divider(),
           const _SectionHeader('Sobre'),
@@ -94,6 +103,46 @@ class SettingsPage extends ConsumerWidget {
     } catch (_) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Não foi possível exportar o cofre.')),
+      );
+    }
+  }
+
+  Future<void> _import(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    const typeGroup = XTypeGroup(label: 'NoxPass backup', extensions: ['backup']);
+    final file = await openFile(acceptedTypeGroups: [typeGroup]);
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    if (!context.mounted) return;
+
+    final password = await promptForPassword(
+      context,
+      title: 'Senha do backup',
+      actionLabel: 'Importar',
+    );
+    if (password == null) return;
+
+    try {
+      final count =
+          await ref.read(vaultBackupManagerProvider).restore(bytes, password);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '$count ${count == 1 ? 'segredo importado' : 'segredos importados'}.',
+          ),
+        ),
+      );
+    } on AuthenticationFailure {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Senha do backup incorreta.')),
+      );
+    } on BackupFormatException {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Arquivo de backup inválido.')),
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Não foi possível importar.')),
       );
     }
   }

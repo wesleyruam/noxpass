@@ -61,8 +61,8 @@ lib/
 - [x] Tema M3 (claro/escuro), rotas e injeção de dependência
 - [x] Banco Drift + SQLCipher (envelope por campo, lixeira e histórico)
 - [x] Onboarding (senha mestra), lock/unlock e CRUD do cofre na UI
-- [x] Auto-lock, dashboard de segurança, backup (export) e lixeira/histórico
-- [ ] Biometria/PIN e importação de backup (UI)
+- [x] Auto-lock, dashboard de segurança, backup (export/import) e lixeira/histórico
+- [ ] Biometria/PIN e proteção contra brute-force
 
 ## Rodando
 
