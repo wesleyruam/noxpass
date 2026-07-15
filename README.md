@@ -10,6 +10,35 @@ Gerenciador de senhas e segredos (Secrets Manager) moderno — *Offline-First*, 
 
 ---
 
+## 📱 Telas
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/splash.png" width="230" alt="Abertura animada"></td>
+    <td align="center"><img src="docs/screenshots/home.png" width="230" alt="Cofre"></td>
+    <td align="center"><img src="docs/screenshots/detail.png" width="230" alt="Detalhe do segredo"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Abertura animada</b><br>logo construída em vetor</sub></td>
+    <td align="center"><sub><b>Cofre</b><br>agrupado por categoria, com tags e busca</sub></td>
+    <td align="center"><sub><b>Detalhe</b><br>campos em mono, 2FA (TOTP) ao vivo</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/generator.png" width="230" alt="Gerador de senha"></td>
+    <td align="center"><img src="docs/screenshots/categories.png" width="230" alt="Categorias"></td>
+    <td align="center"><img src="docs/screenshots/security.png" width="230" alt="Saúde do cofre"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Gerador</b><br>comprimento e classes de caracteres</sub></td>
+    <td align="center"><sub><b>Categorias</b><br>criar, renomear e excluir</sub></td>
+    <td align="center"><sub><b>Saúde do cofre</b><br>senhas fracas e reutilizadas</sub></td>
+  </tr>
+</table>
+
+> Capturas com **dados fictícios**, geradas de forma reproduzível e headless (sem dispositivo) via `tool/screenshots/` — ver [Gerando as screenshots](#gerando-as-screenshots).
+
+---
+
 ## Filosofia
 
 - **Offline First** — o app funciona 100% sem internet; nuvem é opcional.
@@ -64,6 +93,11 @@ lib/
 - [x] Auto-lock, dashboard de segurança, backup (export/import) e lixeira/histórico
 - [x] Desbloqueio rápido por PIN e biometria, com proteção contra força bruta
 - [x] Autenticador TOTP embutido (2FA), validado contra a RFC 6238
+- [x] Categorias e tags (agrupar, filtrar, gerir) e busca por título/usuário/URL
+- [x] Gerador de senhas com controles (comprimento, classes, evitar ambíguos)
+- [x] Favoritos e troca da senha mestra (re-embrulha a DEK, sem recifrar)
+- [x] Identidade visual "Cofre à noite" + abertura com logo animada (vetorial)
+- [x] Bloqueio de captura de tela no Android (`FLAG_SECURE`)
 - [ ] Passkeys, sincronização e importadores (Bitwarden/KeePass/CSV)
 
 ## Rodando
@@ -76,6 +110,16 @@ flutter run
 ```
 
 > O código gerado (`*.g.dart`) não é versionado — rode o `build_runner` após clonar.
+
+### Gerando as screenshots
+
+As imagens de `docs/screenshots/` são renderizadas de forma **headless** (via *golden tests*), com **dados fictícios** — sem dispositivo e sem expor nenhum cofre real:
+
+```bash
+flutter test --update-goldens tool/screenshots/generate_screenshots.dart
+```
+
+Fica fora da suíte padrão (em `tool/`, não em `test/`), então não interfere no `flutter test`. Requer as fontes DejaVu instaladas no sistema.
 
 ## Roadmap
 
