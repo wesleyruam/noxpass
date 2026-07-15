@@ -1,0 +1,59 @@
+name: noxpass
+description: "NoxPass - Gerenciador de senhas e segredos Zero-Knowledge, Offline-First."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # --- Estado & navegação ---
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  go_router: ^14.6.2
+
+  # --- Modelos / serialização ---
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # --- Banco de dados (Drift + SQLCipher) ---
+  drift: ^2.21.0
+  sqlite3: ^2.4.6
+  sqlite3_flutter_libs: ^0.5.26
+  sqlcipher_flutter_libs: ^0.6.4
+  path_provider: ^2.1.5
+  path: ^1.9.0
+
+  # --- Criptografia ---
+  cryptography: ^2.7.0
+  cryptography_flutter: ^2.3.2
+
+  # --- Armazenamento seguro & biometria ---
+  flutter_secure_storage: ^9.2.2
+  local_auth: ^2.3.0
+
+  # --- Utilitários ---
+  intl: ^0.19.0
+  collection: ^1.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # --- Geração de código ---
+  build_runner: ^2.4.13
+  freezed: ^2.5.7
+  json_serializable: ^6.9.0
+  riverpod_generator: ^2.6.3
+  drift_dev: ^2.21.0
+
+  # --- Testes ---
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
