@@ -153,6 +153,25 @@ void main() {
       expect(versions, hasLength(1));
       expect(versions.single.payload[SecretPayload.password], 'senha-v1');
     });
+
+    test('restoreVersion volta ao conteúdo antigo e preserva a versão atual',
+        () async {
+      final s = await repo.create(draft(password: 'senha-v1'));
+      await repo.update(s.id, draft(password: 'senha-v2'));
+      final v1 = (await repo.getVersions(s.id)).single; // snapshot de v1
+
+      await repo.restoreVersion(s.id, v1.id);
+
+      final current = await repo.getById(s.id);
+      expect(current!.payload[SecretPayload.password], 'senha-v1');
+      // Agora há 2 versões: a v1 original e o snapshot da v2 (antes de restaurar).
+      final versions = await repo.getVersions(s.id);
+      expect(versions, hasLength(2));
+      expect(
+        versions.map((v) => v.payload[SecretPayload.password]),
+        containsAll(['senha-v1', 'senha-v2']),
+      );
+    });
   });
 
   group('tags e favoritos', () {

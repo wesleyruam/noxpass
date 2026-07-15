@@ -208,6 +208,45 @@ class SecretsRepositoryImpl implements SecretsRepository {
     }));
   }
 
+  @override
+  Future<void> restoreVersion(String secretId, String versionId) async {
+    final now = _now();
+    await _db.transaction(() async {
+      final version = await (_db.select(_db.secretVersions)
+            ..where((t) => t.id.equals(versionId) & t.secretId.equals(secretId)))
+          .getSingleOrNull();
+      if (version == null) {
+        throw StateError('Versão $versionId não existe.');
+      }
+      final current = await (_db.select(_db.secrets)
+            ..where((t) => t.id.equals(secretId)))
+          .getSingleOrNull();
+      if (current == null) {
+        throw StateError('Segredo $secretId não existe.');
+      }
+
+      // Preserva a versão atual antes de sobrescrever.
+      await _db.into(_db.secretVersions).insert(
+            SecretVersionsCompanion.insert(
+              id: _uuid.v4(),
+              secretId: secretId,
+              title: current.title,
+              encryptedPayload: current.encryptedPayload,
+              createdAt: now,
+            ),
+          );
+
+      // Reaproveita o payload já cifrado da versão (mesma fieldKey).
+      await (_db.update(_db.secrets)..where((t) => t.id.equals(secretId))).write(
+        SecretsCompanion(
+          title: Value(version.title),
+          encryptedPayload: Value(version.encryptedPayload),
+          updatedAt: Value(now),
+        ),
+      );
+    });
+  }
+
   // --- Internos ------------------------------------------------------------
 
   Future<List<Secret>> _mapRows(List<SecretRow> rows) =>

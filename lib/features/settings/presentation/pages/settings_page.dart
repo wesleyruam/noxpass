@@ -11,6 +11,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../routes/app_routes.dart';
 import '../../../../shared/widgets/password_prompt.dart';
 import '../../../backup/data/backup_providers.dart';
+import '../settings_providers.dart';
 
 /// Ajustes: segurança, backup e informações do app.
 class SettingsPage extends ConsumerWidget {
@@ -29,6 +30,18 @@ class SettingsPage extends ConsumerWidget {
             subtitle: const Text('Senhas fracas e reutilizadas'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push(AppRoutes.securityPath),
+          ),
+          _AutoLockTile(
+            value: ref.watch(autoLockTimeoutProvider),
+            onChanged: (duration) =>
+                ref.read(autoLockTimeoutProvider.notifier).state = duration,
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete_outline),
+            title: const Text('Lixeira'),
+            subtitle: const Text('Itens excluídos (30 dias)'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(AppRoutes.trashPath),
           ),
           const Divider(),
           const _SectionHeader('Backup'),
@@ -83,6 +96,31 @@ class SettingsPage extends ConsumerWidget {
         const SnackBar(content: Text('Não foi possível exportar o cofre.')),
       );
     }
+  }
+}
+
+class _AutoLockTile extends StatelessWidget {
+  const _AutoLockTile({required this.value, required this.onChanged});
+
+  final Duration value;
+  final ValueChanged<Duration> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.timer_outlined),
+      title: const Text('Bloqueio automático'),
+      subtitle: const Text('Travar o cofre por inatividade'),
+      trailing: DropdownButton<Duration>(
+        value: value,
+        underline: const SizedBox.shrink(),
+        items: [
+          for (final entry in kAutoLockOptions.entries)
+            DropdownMenuItem(value: entry.value, child: Text(entry.key)),
+        ],
+        onChanged: (d) => d == null ? null : onChanged(d),
+      ),
+    );
   }
 }
 

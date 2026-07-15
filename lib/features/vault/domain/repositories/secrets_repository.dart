@@ -42,4 +42,8 @@ abstract interface class SecretsRepository {
 
   /// Histórico de um segredo, do mais recente ao mais antigo.
   Future<List<SecretVersionSnapshot>> getVersions(String secretId);
+
+  /// Restaura o conteúdo de uma versão anterior, registrando a versão atual
+  /// no histórico antes de sobrescrever.
+  Future<void> restoreVersion(String secretId, String versionId);
 }

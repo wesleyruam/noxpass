@@ -6,6 +6,7 @@ import '../../data/vault_providers.dart';
 import '../../domain/entities/secret.dart';
 import '../../domain/entities/secret_payload.dart';
 import 'secret_form_sheet.dart';
+import 'secret_history_sheet.dart';
 import 'secret_type_icon.dart';
 
 /// Exibe os detalhes de um segredo com revelar/copiar seguros.
@@ -77,6 +78,14 @@ class _SecretDetailSheetState extends ConsumerState<SecretDetailSheet> {
                   style: theme.textTheme.titleLarge
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
+              ),
+              IconButton(
+                tooltip: 'Histórico',
+                icon: const Icon(Icons.history),
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await SecretHistorySheet.show(context, secret);
+                },
               ),
               IconButton(
                 tooltip: 'Editar',

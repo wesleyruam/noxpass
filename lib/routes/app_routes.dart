@@ -17,4 +17,7 @@ abstract final class AppRoutes {
 
   static const String settings = 'settings';
   static const String settingsPath = '/settings';
+
+  static const String trash = 'trash';
+  static const String trashPath = '/trash';
 }

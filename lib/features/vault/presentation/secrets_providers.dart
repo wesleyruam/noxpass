@@ -10,3 +10,8 @@ final secretsListProvider = StreamProvider.autoDispose<List<Secret>>((ref) {
   final repository = ref.watch(secretsRepositoryProvider);
   return repository.watchActive();
 });
+
+/// Itens na lixeira (carregados sob demanda; invalidar após restaurar/apagar).
+final trashProvider = FutureProvider.autoDispose<List<Secret>>((ref) {
+  return ref.watch(secretsRepositoryProvider).getTrash();
+});

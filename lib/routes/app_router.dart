@@ -10,6 +10,7 @@ import '../features/authentication/presentation/pages/unlock_page.dart';
 import '../features/security/presentation/pages/security_report_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/vault/presentation/pages/home_page.dart';
+import '../features/vault/presentation/pages/trash_page.dart';
 import 'app_routes.dart';
 
 /// Roteador raiz do NoxPass, com guardas de sessão baseadas no estado de
@@ -70,6 +71,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.settingsPath,
         name: AppRoutes.settings,
         builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.trashPath,
+        name: AppRoutes.trash,
+        builder: (context, state) => const TrashPage(),
       ),
     ],
   );
