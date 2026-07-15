@@ -57,6 +57,9 @@ android/key.properties
 **/*.backup
 secrets.dart
 lib/**/*_secrets.dart
+# Código gerado (Drift/freezed/json/riverpod) — recriado por build_runner
+*.g.dart
+*.freezed.dart
 # Cobertura e artefatos locais
 coverage/
 *.lcov

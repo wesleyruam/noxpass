@@ -59,16 +59,19 @@ lib/
 - [x] Scaffold multiplataforma (Android, iOS, Linux, macOS, Windows)
 - [x] Camada de criptografia completa, com testes unitários
 - [x] Tema M3 (claro/escuro), rotas e injeção de dependência
-- [ ] Banco Drift + SQLCipher
-- [ ] Onboarding (cadastro da senha mestra) e CRUD do cofre
+- [x] Banco Drift + SQLCipher (envelope por campo, lixeira e histórico)
+- [ ] Onboarding (cadastro da senha mestra) e CRUD do cofre na UI
 
 ## Rodando
 
 ```bash
 flutter pub get
-flutter test      # roda a suíte (inclui os testes de criptografia)
+dart run build_runner build --delete-conflicting-outputs   # gera o código do Drift
+flutter test      # roda a suíte (criptografia + banco/repositório)
 flutter run
 ```
+
+> O código gerado (`*.g.dart`) não é versionado — rode o `build_runner` após clonar.
 
 ## Roadmap
 
