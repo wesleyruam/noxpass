@@ -15,6 +15,7 @@ import '../../../../shared/widgets/noxpass_logo.dart';
 import '../../../../shared/widgets/password_prompt.dart';
 import '../../../authentication/data/auth_data_providers.dart';
 import '../../../authentication/presentation/auth_controller.dart';
+import '../../../authentication/presentation/widgets/change_master_password_dialog.dart';
 import '../../../backup/data/backup_providers.dart';
 import '../../../backup/domain/backup_service.dart';
 import '../settings_providers.dart';
@@ -36,6 +37,20 @@ class SettingsPage extends ConsumerWidget {
             subtitle: const Text('Senhas fracas e reutilizadas'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push(AppRoutes.securityPath),
+          ),
+          ListTile(
+            leading: const Icon(Icons.key_outlined),
+            title: const Text('Alterar senha mestra'),
+            subtitle: const Text('Troca a senha sem recifrar o cofre'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              final changed = await showChangeMasterPasswordDialog(context);
+              if (changed == true && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Senha mestra alterada.')),
+                );
+              }
+            },
           ),
           const _PinTile(),
           const _BiometricTile(),

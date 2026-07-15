@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/security/password_strength_meter.dart';
-import '../../../generator/domain/password_generator.dart';
+import '../../../../shared/theme/nox_colors.dart';
+import '../../../generator/presentation/password_generator_sheet.dart';
 import '../../../totp/domain/totp.dart';
 import '../../data/vault_providers.dart';
 import '../../domain/entities/secret.dart';
@@ -42,6 +43,7 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
   late final TextEditingController _notes;
   late final TextEditingController _totp;
   late SecretType _type;
+  late bool _isFavorite;
   bool _obscure = true;
   bool _saving = false;
 
@@ -50,6 +52,7 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
     super.initState();
     final s = widget.existing;
     _type = s?.type ?? SecretType.password;
+    _isFavorite = s?.isFavorite ?? false;
     _title = TextEditingController(text: s?.title ?? '');
     _username = TextEditingController(text: s?.payload[SecretPayload.username] ?? '');
     _password = TextEditingController(text: s?.payload[SecretPayload.password] ?? '');
@@ -69,10 +72,9 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
     super.dispose();
   }
 
-  void _generate() {
-    final generated = const PasswordGenerator().generate(
-      const PasswordGeneratorOptions(),
-    );
+  Future<void> _generate() async {
+    final generated = await PasswordGeneratorSheet.show(context);
+    if (generated == null) return;
     setState(() {
       _password.text = generated;
       _obscure = false;
@@ -90,7 +92,17 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
       if (_notes.text.trim().isNotEmpty) SecretPayload.notes: _notes.text.trim(),
       if (_totp.text.trim().isNotEmpty) SecretPayload.totp: _totp.text.trim(),
     });
-    final draft = SecretDraft(type: _type, title: _title.text.trim(), payload: payload);
+    final existing = widget.existing;
+    final draft = SecretDraft(
+      type: _type,
+      title: _title.text.trim(),
+      payload: payload,
+      isFavorite: _isFavorite,
+      // Preserva campos que ainda não têm UI de edição.
+      categoryId: existing?.categoryId,
+      iconRef: existing?.iconRef,
+      tags: existing?.tags ?? const <String>[],
+    );
 
     try {
       final repo = ref.read(secretsRepositoryProvider);
@@ -124,14 +136,30 @@ class _SecretFormSheetState extends ConsumerState<SecretFormSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                isEditing ? 'Editar segredo' : 'Novo segredo',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      isEditing ? 'Editar segredo' : 'Novo segredo',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: _isFavorite
+                        ? 'Remover dos favoritos'
+                        : 'Adicionar aos favoritos',
+                    onPressed: () => setState(() => _isFavorite = !_isFavorite),
+                    icon: Icon(
+                      _isFavorite ? Icons.star : Icons.star_border,
+                      color: _isFavorite ? context.nox.warn : null,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               SecretTypeField(
                 value: _type,
                 onChanged: (t) => setState(() => _type = t),

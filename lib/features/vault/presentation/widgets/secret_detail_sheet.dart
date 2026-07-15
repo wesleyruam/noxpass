@@ -31,9 +31,24 @@ class SecretDetailSheet extends ConsumerStatefulWidget {
 
 class _SecretDetailSheetState extends ConsumerState<SecretDetailSheet> {
   bool _revealPassword = false;
+  late bool _isFavorite;
 
   /// Tempo até a área de transferência ser limpa automaticamente.
   static const Duration _clipboardClear = Duration(seconds: 30);
+
+  @override
+  void initState() {
+    super.initState();
+    _isFavorite = widget.secret.isFavorite;
+  }
+
+  Future<void> _toggleFavorite() async {
+    final next = !_isFavorite;
+    setState(() => _isFavorite = next);
+    await ref
+        .read(secretsRepositoryProvider)
+        .setFavorite(widget.secret.id, value: next);
+  }
 
   Future<void> _copy(String label, String value) async {
     await Clipboard.setData(ClipboardData(text: value));
@@ -114,6 +129,16 @@ class _SecretDetailSheetState extends ConsumerState<SecretDetailSheet> {
                         ),
                     ],
                   ),
+                ),
+                IconButton(
+                  tooltip: _isFavorite
+                      ? 'Remover dos favoritos'
+                      : 'Adicionar aos favoritos',
+                  icon: Icon(
+                    _isFavorite ? Icons.star : Icons.star_border,
+                    color: _isFavorite ? nox.warn : null,
+                  ),
+                  onPressed: _toggleFavorite,
                 ),
                 IconButton(
                   tooltip: 'Histórico',

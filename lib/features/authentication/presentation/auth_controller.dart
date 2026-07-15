@@ -114,6 +114,29 @@ class AuthController extends AsyncNotifier<AuthState> {
     ref.invalidate(isPinEnabledProvider);
   }
 
+  /// Troca a senha mestra: re-embrulha a **mesma DEK** sob a nova senha, sem
+  /// recifrar o cofre. Lança [AuthenticationFailure] se [currentPassword]
+  /// estiver incorreta. PIN e biometria continuam válidos (embrulham a mesma
+  /// DEK de forma independente).
+  Future<void> changeMasterPassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final store = ref.read(vaultMaterialStoreProvider);
+    final material = await store.read();
+    if (material == null) {
+      throw StateError('Cofre não encontrado.');
+    }
+    final updated =
+        await ref.read(vaultKeyServiceProvider).changeMasterPassword(
+              currentPassword: currentPassword,
+              newPassword: newPassword,
+              material: material,
+              newParams: ref.read(vaultKdfParamsProvider),
+            );
+    await store.write(updated);
+  }
+
   /// Destrava o cofre pelo PIN. Sujeito à mesma proteção de força bruta.
   Future<void> unlockWithPin(String pin) async {
     state = const AsyncLoading<AuthState>().copyWithPrevious(state);

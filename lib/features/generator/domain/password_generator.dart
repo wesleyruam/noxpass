@@ -8,6 +8,7 @@ class PasswordGeneratorOptions {
     this.useUpper = true,
     this.useDigits = true,
     this.useSymbols = true,
+    this.avoidAmbiguous = false,
   });
 
   final int length;
@@ -16,7 +17,28 @@ class PasswordGeneratorOptions {
   final bool useDigits;
   final bool useSymbols;
 
+  /// Remove caracteres visualmente ambíguos (0/O, 1/l/I, etc.).
+  final bool avoidAmbiguous;
+
   bool get hasAnyClass => useLower || useUpper || useDigits || useSymbols;
+
+  PasswordGeneratorOptions copyWith({
+    int? length,
+    bool? useLower,
+    bool? useUpper,
+    bool? useDigits,
+    bool? useSymbols,
+    bool? avoidAmbiguous,
+  }) {
+    return PasswordGeneratorOptions(
+      length: length ?? this.length,
+      useLower: useLower ?? this.useLower,
+      useUpper: useUpper ?? this.useUpper,
+      useDigits: useDigits ?? this.useDigits,
+      useSymbols: useSymbols ?? this.useSymbols,
+      avoidAmbiguous: avoidAmbiguous ?? this.avoidAmbiguous,
+    );
+  }
 }
 
 /// Gera senhas aleatórias usando a CSPRNG do app.
@@ -33,6 +55,9 @@ class PasswordGenerator {
   static const String _digits = '0123456789';
   static const String _symbols = '!@#\$%&*()-_=+[]{};:,.?';
 
+  /// Caracteres facilmente confundidos entre si.
+  static const String _ambiguous = 'Il1O0o';
+
   String generate(PasswordGeneratorOptions options) {
     if (!options.hasAnyClass) {
       throw ArgumentError('Selecione ao menos uma classe de caracteres.');
@@ -46,7 +71,13 @@ class PasswordGenerator {
       ..write(options.useUpper ? _upper : '')
       ..write(options.useDigits ? _digits : '')
       ..write(options.useSymbols ? _symbols : '');
-    final chars = alphabet.toString();
+    var chars = alphabet.toString();
+    if (options.avoidAmbiguous) {
+      chars = chars.split('').where((c) => !_ambiguous.contains(c)).join();
+    }
+    if (chars.isEmpty) {
+      throw ArgumentError('Nenhum caractere disponível com essas opções.');
+    }
 
     final buffer = StringBuffer();
     for (var i = 0; i < options.length; i++) {

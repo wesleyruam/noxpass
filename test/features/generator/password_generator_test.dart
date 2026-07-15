@@ -41,5 +41,14 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('avoidAmbiguous remove caracteres ambíguos', () {
+      final pass = generator.generate(
+        const PasswordGeneratorOptions(length: 500, avoidAmbiguous: true),
+      );
+      for (final ambiguous in 'Il1O0o'.split('')) {
+        expect(pass, isNot(contains(ambiguous)));
+      }
+    });
   });
 }
