@@ -1,0 +1,7 @@
+# Configuração da suíte de testes.
+tags:
+  # Testes de integração que exigem a libsqlcipher instalada no host.
+  # Em máquinas sem ela (ex.: CI padrão), rode:
+  #   flutter test --exclude-tags sqlcipher
+  sqlcipher:
+    skip: false
