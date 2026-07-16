@@ -39,6 +39,14 @@ Gerenciador de senhas e segredos (Secrets Manager) moderno — *Offline-First*, 
 
 > Capturas com **dados fictícios**, geradas de forma reproduzível e headless (sem dispositivo) via `tool/screenshots/` — ver [Gerando as screenshots](#gerando-as-screenshots).
 
+<div align="center">
+  <img src="docs/screenshots/home.png" width="220" alt="Tema escuro">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/home_light.png" width="220" alt="Tema claro">
+  <br>
+  <sub>Tema <b>escuro</b> e <b>claro</b> — escolha em Ajustes ou siga o sistema.</sub>
+</div>
+
 ---
 
 ## Filosofia

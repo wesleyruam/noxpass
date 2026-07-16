@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'features/authentication/presentation/auto_lock_scope.dart';
+import 'features/settings/presentation/settings_providers.dart';
 import 'routes/app_router.dart';
 import 'shared/theme/app_theme.dart';
 
@@ -20,7 +21,7 @@ class NoxPassApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: ref.watch(themeModeProvider),
       routerConfig: router,
       // Aplica o bloqueio automático por cima de toda a árvore de navegação.
       builder: (context, child) =>

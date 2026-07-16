@@ -30,6 +30,9 @@ class SettingsPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Ajustes')),
       body: ListView(
         children: [
+          const _SectionHeader('Aparência'),
+          const _ThemeModeTile(),
+          const Divider(),
           const _SectionHeader('Segurança'),
           ListTile(
             leading: const Icon(Icons.health_and_safety_outlined),
@@ -256,6 +259,44 @@ class _AutoLockTile extends StatelessWidget {
             DropdownMenuItem(value: entry.value, child: Text(entry.key)),
         ],
         onChanged: (d) => d == null ? null : onChanged(d),
+      ),
+    );
+  }
+}
+
+class _ThemeModeTile extends ConsumerWidget {
+  const _ThemeModeTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<ThemeMode>(
+          segments: const [
+            ButtonSegment(
+              value: ThemeMode.system,
+              label: Text('Sistema'),
+              icon: Icon(Icons.brightness_auto_outlined),
+            ),
+            ButtonSegment(
+              value: ThemeMode.light,
+              label: Text('Claro'),
+              icon: Icon(Icons.light_mode_outlined),
+            ),
+            ButtonSegment(
+              value: ThemeMode.dark,
+              label: Text('Escuro'),
+              icon: Icon(Icons.dark_mode_outlined),
+            ),
+          ],
+          selected: {mode},
+          showSelectedIcon: false,
+          onSelectionChanged: (selection) =>
+              ref.read(themeModeProvider.notifier).set(selection.first),
+        ),
       ),
     );
   }

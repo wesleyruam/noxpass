@@ -34,8 +34,8 @@ const Size _logicalSize = Size(390, 844);
 /// Tema dark do app, mas com a família 'Roboto' forçada nos estilos de texto
 /// dos botões — no golden, o texto dos botões ignorava a família ambiente e
 /// virava caixas. Fora do teste, isso não é necessário.
-ThemeData _screenshotTheme() {
-  final base = AppTheme.dark();
+ThemeData _screenshotTheme({bool light = false}) {
+  final base = light ? AppTheme.light() : AppTheme.dark();
   TextStyle w(double? size) =>
       TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600, fontSize: size);
   return base.copyWith(
@@ -83,6 +83,7 @@ void main() {
     WidgetTester tester,
     Widget child, {
     List<Override> overrides = const [],
+    bool light = false,
   }) async {
     tester.view.physicalSize = _logicalSize * 3;
     tester.view.devicePixelRatio = 3;
@@ -94,7 +95,7 @@ void main() {
         overrides: overrides,
         child: MaterialApp(
           debugShowCheckedModeBanner: false,
-          theme: _screenshotTheme(),
+          theme: _screenshotTheme(light: light),
           home: child,
         ),
       ),
@@ -125,6 +126,12 @@ void main() {
   testWidgets('home', (tester) async {
     await pumpScreen(tester, const HomePage(), overrides: [repoOverride]);
     await capture(tester, 'home');
+  });
+
+  testWidgets('home_light', (tester) async {
+    await pumpScreen(tester, const HomePage(),
+        overrides: [repoOverride], light: true);
+    await capture(tester, 'home_light');
   });
 
   testWidgets('security', (tester) async {
