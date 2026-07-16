@@ -53,9 +53,10 @@ class VaultHealthCard extends ConsumerWidget {
         children: [
           _ScoreRing(
             value: total == 0 ? 1 : score / 100,
+            score: score,
+            hasScore: total != 0,
             color: ringColor,
             trackColor: nox.surface3,
-            label: total == 0 ? '—' : '$score',
             textColor: theme.colorScheme.onSurface,
           ),
           const SizedBox(width: 16),
@@ -115,43 +116,55 @@ class VaultHealthCard extends ConsumerWidget {
   }
 }
 
-/// Anel de pontuação com traço arredondado e trilha ao fundo.
+/// Anel de pontuação com traço arredondado e trilha ao fundo. Preenche e
+/// conta de 0 até o valor ao aparecer (respeita "reduzir movimento").
 class _ScoreRing extends StatelessWidget {
   const _ScoreRing({
     required this.value,
+    required this.score,
+    required this.hasScore,
     required this.color,
     required this.trackColor,
-    required this.label,
     required this.textColor,
   });
 
   final double value;
+  final int score;
+  final bool hasScore;
   final Color color;
   final Color trackColor;
-  final String label;
   final Color textColor;
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return SizedBox(
       width: 64,
       height: 64,
-      child: CustomPaint(
-        painter: _RingPainter(
-          value: value.clamp(0, 1),
-          color: color,
-          trackColor: trackColor,
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: context.mono(
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              color: textColor,
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration:
+            reduceMotion ? Duration.zero : const Duration(milliseconds: 900),
+        curve: Curves.easeOutCubic,
+        builder: (context, t, _) {
+          return CustomPaint(
+            painter: _RingPainter(
+              value: (value * t).clamp(0, 1),
+              color: color,
+              trackColor: trackColor,
             ),
-          ),
-        ),
+            child: Center(
+              child: Text(
+                hasScore ? '${(score * t).round()}' : '—',
+                style: context.mono(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -104,6 +104,9 @@ void main() {
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 120));
     }
+    // Garante que micro-animações (anel de saúde ~900ms, crossfade da lista)
+    // terminem antes de capturar o estado final.
+    await tester.pump(const Duration(milliseconds: 1000));
   }
 
   Future<void> capture(WidgetTester tester, String name) async {

@@ -28,6 +28,7 @@ class HomePage extends ConsumerWidget {
     final query = ref.watch(_searchQueryProvider).trim().toLowerCase();
     final tagFilter = ref.watch(_tagFilterProvider);
     final categories = ref.watch(categoriesProvider).valueOrNull ?? const [];
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -71,12 +72,31 @@ class HomePage extends ConsumerWidget {
               ),
             ),
             Expanded(
-              child: secretsAsync.when(
-                loading: () => const _LoadingList(),
-                error: (error, _) =>
-                    Center(child: Text('Erro ao carregar: $error')),
+              child: AnimatedSwitcher(
+                duration: reduceMotion
+                    ? Duration.zero
+                    : const Duration(milliseconds: 350),
+                switchInCurve: Curves.easeOut,
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween(
+                      begin: const Offset(0, 0.03),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+                child: secretsAsync.when(
+                loading: () => const _LoadingList(key: ValueKey('loading')),
+                error: (error, _) => Center(
+                  key: const ValueKey('error'),
+                  child: Text('Erro ao carregar: $error'),
+                ),
                 data: (secrets) {
-                  if (secrets.isEmpty) return const _EmptyState();
+                  if (secrets.isEmpty) {
+                    return const _EmptyState(key: ValueKey('empty'));
+                  }
 
                   // Tags distintas (preserva a grafia original).
                   final tagMap = <String, String>{};
@@ -149,6 +169,7 @@ class HomePage extends ConsumerWidget {
                   }
 
                   return Column(
+                    key: const ValueKey('data'),
                     children: [
                       if (tags.isNotEmpty)
                         _TagFilterBar(
@@ -178,6 +199,7 @@ class HomePage extends ConsumerWidget {
                     ],
                   );
                 },
+                ),
               ),
             ),
           ],
@@ -445,7 +467,7 @@ class _Badge2fa extends StatelessWidget {
 
 /// Placeholder de carregamento em forma de "skeleton" das linhas.
 class _LoadingList extends StatelessWidget {
-  const _LoadingList();
+  const _LoadingList({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -484,7 +506,7 @@ class _LoadingList extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({super.key});
 
   @override
   Widget build(BuildContext context) {
