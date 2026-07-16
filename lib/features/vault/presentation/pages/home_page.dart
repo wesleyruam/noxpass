@@ -88,117 +88,126 @@ class HomePage extends ConsumerWidget {
                   ),
                 ),
                 child: secretsAsync.when(
-                loading: () => const _LoadingList(key: ValueKey('loading')),
-                error: (error, _) => Center(
-                  key: const ValueKey('error'),
-                  child: Text('Erro ao carregar: $error'),
-                ),
-                data: (secrets) {
-                  if (secrets.isEmpty) {
-                    return const _EmptyState(key: ValueKey('empty'));
-                  }
-
-                  // Tags distintas (preserva a grafia original).
-                  final tagMap = <String, String>{};
-                  for (final s in secrets) {
-                    for (final t in s.tags) {
-                      tagMap.putIfAbsent(t.toLowerCase(), () => t);
+                  loading: () => const _LoadingList(key: ValueKey('loading')),
+                  error: (error, _) => Center(
+                    key: const ValueKey('error'),
+                    child: Text('Erro ao carregar: $error'),
+                  ),
+                  data: (secrets) {
+                    if (secrets.isEmpty) {
+                      return const _EmptyState(key: ValueKey('empty'));
                     }
-                  }
-                  final tags = tagMap.values.toList()
-                    ..sort((a, b) =>
-                        a.toLowerCase().compareTo(b.toLowerCase()));
 
-                  bool matchesQuery(Secret s) {
-                    if (query.isEmpty) return true;
-                    final hay = [
-                      s.title,
-                      s.payload[SecretPayload.username] ?? '',
-                      s.payload[SecretPayload.url] ?? '',
-                    ].join(' ').toLowerCase();
-                    return hay.contains(query);
-                  }
+                    // Tags distintas (preserva a grafia original).
+                    final tagMap = <String, String>{};
+                    for (final s in secrets) {
+                      for (final t in s.tags) {
+                        tagMap.putIfAbsent(t.toLowerCase(), () => t);
+                      }
+                    }
+                    final tags = tagMap.values.toList()
+                      ..sort(
+                        (a, b) => a.toLowerCase().compareTo(b.toLowerCase()),
+                      );
 
-                  bool matchesTag(Secret s) =>
-                      tagFilter == null || s.tags.contains(tagFilter);
+                    bool matchesQuery(Secret s) {
+                      if (query.isEmpty) return true;
+                      final hay = [
+                        s.title,
+                        s.payload[SecretPayload.username] ?? '',
+                        s.payload[SecretPayload.url] ?? '',
+                      ].join(' ').toLowerCase();
+                      return hay.contains(query);
+                    }
 
-                  final filtered = secrets
-                      .where((s) => matchesQuery(s) && matchesTag(s))
-                      .toList();
+                    bool matchesTag(Secret s) =>
+                        tagFilter == null || s.tags.contains(tagFilter);
 
-                  // Agrupa por categoria (ordenadas; sem categoria por último).
-                  final catById = {for (final c in categories) c.id: c};
-                  final groups = <String?, List<Secret>>{};
-                  for (final s in filtered) {
-                    final key = (s.categoryId != null &&
-                            catById.containsKey(s.categoryId))
-                        ? s.categoryId
-                        : null;
-                    groups.putIfAbsent(key, () => []).add(s);
-                  }
-                  final catKeys = groups.keys.whereType<String>().toList()
-                    ..sort((a, b) {
-                      final ca = catById[a]!, cb = catById[b]!;
-                      final byOrder = ca.sortOrder.compareTo(cb.sortOrder);
-                      return byOrder != 0
-                          ? byOrder
-                          : ca.name
-                              .toLowerCase()
-                              .compareTo(cb.name.toLowerCase());
-                    });
-                  final onlyUncategorized =
-                      catKeys.isEmpty && groups.containsKey(null);
+                    final filtered = secrets
+                        .where((s) => matchesQuery(s) && matchesTag(s))
+                        .toList();
 
-                  // Achata em cabeçalhos de seção + tiles.
-                  final entries = <Object>[];
-                  for (final key in catKeys) {
-                    final c = catById[key]!;
-                    entries
-                      ..add(_Header(c.name, categoryIconFor(c.icon)))
-                      ..addAll(groups[key]!);
-                  }
-                  if (groups.containsKey(null)) {
-                    entries
-                      ..add(_Header(
-                        onlyUncategorized
-                            ? (tagFilter == null ? 'Cofre' : '#$tagFilter')
-                            : 'Sem categoria',
-                        null,
-                      ))
-                      ..addAll(groups[null]!);
-                  }
+                    // Agrupa por categoria (ordenadas; sem categoria por último).
+                    final catById = {for (final c in categories) c.id: c};
+                    final groups = <String?, List<Secret>>{};
+                    for (final s in filtered) {
+                      final key =
+                          (s.categoryId != null &&
+                              catById.containsKey(s.categoryId))
+                          ? s.categoryId
+                          : null;
+                      groups.putIfAbsent(key, () => []).add(s);
+                    }
+                    final catKeys = groups.keys.whereType<String>().toList()
+                      ..sort((a, b) {
+                        final ca = catById[a]!, cb = catById[b]!;
+                        final byOrder = ca.sortOrder.compareTo(cb.sortOrder);
+                        return byOrder != 0
+                            ? byOrder
+                            : ca.name.toLowerCase().compareTo(
+                                cb.name.toLowerCase(),
+                              );
+                      });
+                    final onlyUncategorized =
+                        catKeys.isEmpty && groups.containsKey(null);
 
-                  return Column(
-                    key: const ValueKey('data'),
-                    children: [
-                      if (tags.isNotEmpty)
-                        _TagFilterBar(
-                          tags: tags,
-                          selected: tagFilter,
-                          onSelected: (t) => ref
-                              .read(_tagFilterProvider.notifier)
-                              .state = t,
+                    // Achata em cabeçalhos de seção + tiles.
+                    final entries = <Object>[];
+                    for (final key in catKeys) {
+                      final c = catById[key]!;
+                      entries
+                        ..add(_Header(c.name, categoryIconFor(c.icon)))
+                        ..addAll(groups[key]!);
+                    }
+                    if (groups.containsKey(null)) {
+                      entries
+                        ..add(
+                          _Header(
+                            onlyUncategorized
+                                ? (tagFilter == null ? 'Cofre' : '#$tagFilter')
+                                : 'Sem categoria',
+                            null,
+                          ),
+                        )
+                        ..addAll(groups[null]!);
+                    }
+
+                    return Column(
+                      key: const ValueKey('data'),
+                      children: [
+                        if (tags.isNotEmpty)
+                          _TagFilterBar(
+                            tags: tags,
+                            selected: tagFilter,
+                            onSelected: (t) =>
+                                ref.read(_tagFilterProvider.notifier).state = t,
+                          ),
+                        Expanded(
+                          child: filtered.isEmpty
+                              ? const Center(child: Text('Nenhum resultado.'))
+                              : ListView.builder(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    0,
+                                    12,
+                                    100,
+                                  ),
+                                  itemCount: entries.length,
+                                  itemBuilder: (context, index) {
+                                    final entry = entries[index];
+                                    if (entry is _Header) {
+                                      return _SectionLabel(
+                                        entry.label,
+                                        icon: entry.icon,
+                                      );
+                                    }
+                                    return _SecretTile(secret: entry as Secret);
+                                  },
+                                ),
                         ),
-                      Expanded(
-                        child: filtered.isEmpty
-                            ? const Center(child: Text('Nenhum resultado.'))
-                            : ListView.builder(
-                                padding:
-                                    const EdgeInsets.fromLTRB(12, 0, 12, 100),
-                                itemCount: entries.length,
-                                itemBuilder: (context, index) {
-                                  final entry = entries[index];
-                                  if (entry is _Header) {
-                                    return _SectionLabel(entry.label,
-                                        icon: entry.icon);
-                                  }
-                                  return _SecretTile(secret: entry as Secret);
-                                },
-                              ),
-                      ),
-                    ],
-                  );
-                },
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -346,64 +355,83 @@ class _SecretTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final nox = context.nox;
-    final subtitle = secret.payload[SecretPayload.username] ??
+    final subtitle =
+        secret.payload[SecretPayload.username] ??
         secret.payload[SecretPayload.url] ??
         '';
     final has2fa = secret.payload[SecretPayload.totp] != null;
     final tileColor = NoxTilePalette.forSeed(secret.title);
 
+    // Rótulo único e significativo para leitores de tela.
+    final semanticsLabel = [
+      secret.title,
+      if (subtitle.isNotEmpty) subtitle,
+      if (has2fa) 'com autenticação em dois fatores',
+      if (secret.isFavorite) 'favorito',
+    ].join(', ');
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => SecretDetailSheet.show(context, secret),
-          borderRadius: BorderRadius.circular(13),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              children: [
-                _InitialTile(color: tileColor, text: NoxTilePalette.initials(secret.title)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              secret.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleSmall
-                                  ?.copyWith(fontWeight: FontWeight.w600),
+      child: Semantics(
+        button: true,
+        label: semanticsLabel,
+        onTap: () => SecretDetailSheet.show(context, secret),
+        excludeSemantics: true,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => SecretDetailSheet.show(context, secret),
+            borderRadius: BorderRadius.circular(13),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                children: [
+                  _InitialTile(
+                    color: tileColor,
+                    text: NoxTilePalette.initials(secret.title),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                secret.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            if (secret.isFavorite) ...[
+                              const SizedBox(width: 6),
+                              Icon(Icons.star, size: 14, color: nox.warn),
+                            ],
+                          ],
+                        ),
+                        if (subtitle.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.mono(
+                              fontSize: 12,
+                              color: nox.textDim,
                             ),
                           ),
-                          if (secret.isFavorite) ...[
-                            const SizedBox(width: 6),
-                            Icon(Icons.star, size: 14, color: nox.warn),
-                          ],
                         ],
-                      ),
-                      if (subtitle.isNotEmpty) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          subtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: context.mono(fontSize: 12, color: nox.textDim),
-                        ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                if (has2fa) ...[
-                  const SizedBox(width: 8),
-                  const _Badge2fa(),
+                  if (has2fa) ...[const SizedBox(width: 8), const _Badge2fa()],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -528,8 +556,9 @@ class _EmptyState extends StatelessWidget {
             Text(
               'Toque em "Novo" para guardar sua primeira senha com segurança.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),

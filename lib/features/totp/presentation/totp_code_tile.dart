@@ -80,47 +80,57 @@ class _TotpCodeTileState extends State<TotpCodeTile> {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Código 2FA',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: nox.textFaint,
-                  ),
+            child: Semantics(
+              label: _code.isEmpty
+                  ? 'Código de dois fatores'
+                  : 'Código de dois fatores: ${_code.split('').join(' ')}. '
+                        'Expira em $_remaining segundos.',
+              child: ExcludeSemantics(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Código 2FA',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: nox.textFaint,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      _code.isEmpty ? '——— ———' : _formatted,
+                      style: context.mono(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: accent,
+                        letterSpacing: 3,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  _code.isEmpty ? '——— ———' : _formatted,
-                  style: context.mono(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: accent,
-                    letterSpacing: 3,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-          SizedBox(
-            width: 34,
-            height: 34,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CircularProgressIndicator(
-                  value: _remaining / config.period,
-                  strokeWidth: 3,
-                  color: ringColor,
-                  backgroundColor: nox.surface3,
-                ),
-                Text(
-                  '$_remaining',
-                  style: context.mono(fontSize: 11, color: nox.textDim),
-                ),
-              ],
+          ExcludeSemantics(
+            child: SizedBox(
+              width: 34,
+              height: 34,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  CircularProgressIndicator(
+                    value: _remaining / config.period,
+                    strokeWidth: 3,
+                    color: ringColor,
+                    backgroundColor: nox.surface3,
+                  ),
+                  Text(
+                    '$_remaining',
+                    style: context.mono(fontSize: 11, color: nox.textDim),
+                  ),
+                ],
+              ),
             ),
           ),
           if (widget.onCopy != null)

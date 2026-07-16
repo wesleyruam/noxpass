@@ -67,13 +67,16 @@ class VaultHealthCard extends ConsumerWidget {
               children: [
                 Text(
                   'Saúde do cofre',
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(color: nox.textDim),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: nox.textDim,
+                  ),
                 ),
                 if (total > 0) ...[
                   const SizedBox(height: 12),
@@ -107,11 +110,31 @@ class VaultHealthCard extends ConsumerWidget {
       ),
     );
 
-    if (onTap == null || !report.hasIssues) return card;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: card,
+    final actionable = onTap != null && report.hasIssues;
+    final inner = actionable
+        ? InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: card,
+          )
+        : card;
+
+    // Resumo único para leitores de tela.
+    final semanticsLabel = total == 0
+        ? 'Saúde do cofre. $subtitle'
+        : 'Saúde do cofre. Pontuação $score de 100. '
+              '$strong forte${strong == 1 ? '' : 's'}'
+              '${weak > 0 ? ', $weak fraca${weak == 1 ? '' : 's'}' : ''}'
+              '${reused > 0 ? ', $reused reutilizada${reused == 1 ? '' : 's'}' : ''}'
+              '${actionable ? '. Toque para ver os problemas.' : ''}';
+
+    return Semantics(
+      container: true,
+      button: actionable,
+      onTap: actionable ? onTap : null,
+      label: semanticsLabel,
+      excludeSemantics: true,
+      child: inner,
     );
   }
 }
@@ -143,8 +166,9 @@ class _ScoreRing extends StatelessWidget {
       height: 64,
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: 1),
-        duration:
-            reduceMotion ? Duration.zero : const Duration(milliseconds: 900),
+        duration: reduceMotion
+            ? Duration.zero
+            : const Duration(milliseconds: 900),
         curve: Curves.easeOutCubic,
         builder: (context, t, _) {
           return CustomPaint(

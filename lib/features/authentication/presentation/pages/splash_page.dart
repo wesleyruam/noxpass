@@ -36,7 +36,12 @@ class _SplashPageState extends ConsumerState<SplashPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            LogoBuildAnimation(size: 190, onCompleted: _onAnimationDone),
+            ExcludeSemantics(
+              child: LogoBuildAnimation(
+                size: 190,
+                onCompleted: _onAnimationDone,
+              ),
+            ),
             const SizedBox(height: 8),
             AnimatedOpacity(
               opacity: _showWordmark ? 1 : 0,
