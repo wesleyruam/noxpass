@@ -4,6 +4,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -18,6 +19,8 @@ import '../../../authentication/presentation/auth_controller.dart';
 import '../../../authentication/presentation/widgets/change_master_password_dialog.dart';
 import '../../../backup/data/backup_providers.dart';
 import '../../../backup/domain/backup_service.dart';
+import '../../../sync/data/sync_providers.dart';
+import '../../../sync/domain/drive_backup_manager.dart';
 import '../settings_providers.dart';
 
 /// Ajustes: segurança, backup e informações do app.
@@ -91,6 +94,9 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _import(context, ref),
           ),
           const Divider(),
+          const _SectionHeader('Sincronização'),
+          const _DriveSyncSection(),
+          const Divider(),
           const _SectionHeader('Sobre'),
           const AboutListTile(
             icon: NoxPassShield(size: 32),
@@ -127,10 +133,9 @@ class SettingsPage extends ConsumerWidget {
       final stamp = DateFormat('yyyyMMdd-HHmm').format(DateTime.now());
       final file = File(p.join(dir.path, 'noxpass-$stamp.backup'));
       await file.writeAsBytes(bytes);
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'Backup criptografado do NoxPass',
-      );
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], text: 'Backup criptografado do NoxPass');
     } catch (_) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Não foi possível exportar o cofre.')),
@@ -140,7 +145,10 @@ class SettingsPage extends ConsumerWidget {
 
   Future<void> _import(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
-    const typeGroup = XTypeGroup(label: 'NoxPass backup', extensions: ['backup']);
+    const typeGroup = XTypeGroup(
+      label: 'NoxPass backup',
+      extensions: ['backup'],
+    );
     final file = await openFile(acceptedTypeGroups: [typeGroup]);
     if (file == null) return;
     final bytes = await file.readAsBytes();
@@ -154,8 +162,9 @@ class SettingsPage extends ConsumerWidget {
     if (password == null) return;
 
     try {
-      final count =
-          await ref.read(vaultBackupManagerProvider).restore(bytes, password);
+      final count = await ref
+          .read(vaultBackupManagerProvider)
+          .restore(bytes, password);
       messenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -176,6 +185,183 @@ class SettingsPage extends ConsumerWidget {
         const SnackBar(content: Text('Não foi possível importar.')),
       );
     }
+  }
+}
+
+/// Seção "Sincronização": conecta a conta Google e envia/restaura o cofre
+/// cifrado na pasta privada do app no Drive do usuário.
+class _DriveSyncSection extends ConsumerStatefulWidget {
+  const _DriveSyncSection();
+
+  @override
+  ConsumerState<_DriveSyncSection> createState() => _DriveSyncSectionState();
+}
+
+class _DriveSyncSectionState extends ConsumerState<_DriveSyncSection> {
+  String? _email;
+  DateTime? _lastChange;
+  bool _busy = false;
+
+  DriveBackupManager get _manager => ref.read(driveBackupManagerProvider);
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreSession();
+  }
+
+  Future<void> _restoreSession() async {
+    try {
+      final email = await _manager.restoreSession();
+      if (!mounted) return;
+      setState(() => _email = email);
+      if (email != null) await _refreshLastChange();
+    } catch (_) {
+      // Sem sessão anterior ou sem rede: segue desconectado, sem alarde.
+    }
+  }
+
+  Future<void> _refreshLastChange() async {
+    try {
+      final when = await _manager.lastRemoteChange();
+      if (mounted) setState(() => _lastChange = when);
+    } catch (_) {
+      /* silencioso — é só um enfeite informativo */
+    }
+  }
+
+  Future<void> _connect() async {
+    setState(() => _busy = true);
+    try {
+      final email = await _manager.connect();
+      if (!mounted) return;
+      setState(() => _email = email);
+      await _refreshLastChange();
+    } on GoogleSignInException catch (e) {
+      // Cancelamento pelo usuário não é erro.
+      if (e.code != GoogleSignInExceptionCode.canceled && mounted) {
+        _snack('Não foi possível conectar ao Google Drive.');
+      }
+    } catch (_) {
+      if (mounted) _snack('Não foi possível conectar ao Google Drive.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _disconnect() async {
+    await _manager.disconnect();
+    if (mounted) {
+      setState(() {
+        _email = null;
+        _lastChange = null;
+      });
+    }
+  }
+
+  Future<void> _backup() async {
+    final password = await promptForPassword(
+      context,
+      title: 'Senha do backup',
+      message: 'Protege o cofre no Drive. Guarde-a bem — não é a senha mestra.',
+      requireConfirm: true,
+      actionLabel: 'Enviar',
+    );
+    if (password == null) return;
+    setState(() => _busy = true);
+    try {
+      await _manager.backupToDrive(password);
+      await _refreshLastChange();
+      if (mounted) _snack('Cofre enviado para o Google Drive.');
+    } catch (_) {
+      if (mounted) _snack('Não foi possível enviar o cofre.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restore() async {
+    final password = await promptForPassword(
+      context,
+      title: 'Senha do backup',
+      actionLabel: 'Restaurar',
+    );
+    if (password == null) return;
+    setState(() => _busy = true);
+    try {
+      final count = await _manager.restoreFromDrive(password);
+      if (mounted) {
+        _snack(
+          '$count ${count == 1 ? 'segredo restaurado' : 'segredos restaurados'}.',
+        );
+      }
+    } on NoRemoteBackup {
+      if (mounted) _snack('Nenhum backup encontrado no Drive.');
+    } on AuthenticationFailure {
+      if (mounted) _snack('Senha do backup incorreta.');
+    } on BackupFormatException {
+      if (mounted) _snack('Backup do Drive inválido.');
+    } catch (_) {
+      if (mounted) _snack('Não foi possível restaurar do Drive.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _snack(String message) => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(message)));
+
+  @override
+  Widget build(BuildContext context) {
+    if (_email == null) {
+      return ListTile(
+        leading: const Icon(Icons.cloud_outlined),
+        title: const Text('Conectar Google Drive'),
+        subtitle: const Text('Backup cifrado na sua conta'),
+        trailing: _busy
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : null,
+        onTap: _busy ? null : _connect,
+      );
+    }
+
+    final subtitle = _lastChange == null
+        ? _email!
+        : '${_email!}\nÚltimo envio: ${DateFormat('dd/MM/yyyy HH:mm').format(_lastChange!.toLocal())}';
+
+    return Column(
+      children: [
+        ListTile(
+          leading: const Icon(Icons.cloud_done_outlined),
+          isThreeLine: _lastChange != null,
+          title: const Text('Google Drive conectado'),
+          subtitle: Text(subtitle),
+          trailing: TextButton(
+            onPressed: _busy ? null : _disconnect,
+            child: const Text('Desconectar'),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.backup_outlined),
+          title: const Text('Enviar cofre para o Drive'),
+          subtitle: const Text('Sobrescreve o backup na nuvem'),
+          enabled: !_busy,
+          onTap: _backup,
+        ),
+        ListTile(
+          leading: const Icon(Icons.cloud_download_outlined),
+          title: const Text('Restaurar do Drive'),
+          subtitle: const Text('Baixa e recria os segredos'),
+          enabled: !_busy,
+          onTap: _restore,
+        ),
+      ],
+    );
   }
 }
 
@@ -220,8 +406,7 @@ class _BiometricTile extends ConsumerWidget {
         ref.watch(isBiometricAvailableProvider).valueOrNull ?? false;
     if (!available) return const SizedBox.shrink();
 
-    final enabled =
-        ref.watch(isBiometricEnabledProvider).valueOrNull ?? false;
+    final enabled = ref.watch(isBiometricEnabledProvider).valueOrNull ?? false;
     return SwitchListTile(
       secondary: const Icon(Icons.fingerprint),
       title: const Text('Desbloqueio por biometria'),
@@ -314,8 +499,9 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Text(
         title,
-        style: theme.textTheme.labelLarge
-            ?.copyWith(color: theme.colorScheme.primary),
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.primary,
+        ),
       ),
     );
   }
