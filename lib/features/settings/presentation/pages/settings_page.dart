@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -19,9 +20,63 @@ import '../../../authentication/presentation/auth_controller.dart';
 import '../../../authentication/presentation/widgets/change_master_password_dialog.dart';
 import '../../../backup/data/backup_providers.dart';
 import '../../../backup/domain/backup_service.dart';
+import '../../../backup/domain/restore_plan.dart';
+import '../../../backup/presentation/restore_preview_page.dart';
 import '../../../sync/data/sync_providers.dart';
 import '../../../sync/domain/drive_backup_manager.dart';
 import '../settings_providers.dart';
+
+/// Decifra os bytes, monta a prévia do restore, abre a tela de revisão e
+/// aplica a escolha do usuário. Compartilhado pelo arquivo e pelo Drive.
+Future<void> _runRestore(
+  BuildContext context,
+  WidgetRef ref,
+  Uint8List bytes,
+  String password,
+  String source,
+) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final navigator = Navigator.of(context);
+  try {
+    final plan = await ref
+        .read(vaultBackupManagerProvider)
+        .planRestore(bytes, password);
+    if (plan.items.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('O backup não tem itens.')),
+      );
+      return;
+    }
+    final summary = await navigator.push<RestoreSummary>(
+      MaterialPageRoute(
+        builder: (_) => RestorePreviewPage(plan: plan, source: source),
+      ),
+    );
+    if (summary == null) return;
+    final parts = <String>[
+      if (summary.added > 0) '${summary.added} adicionados',
+      if (summary.replaced > 0) '${summary.replaced} substituídos',
+      if (summary.skipped > 0) '${summary.skipped} ignorados',
+    ];
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          parts.isEmpty ? 'Nada aplicado.' : '${parts.join(', ')}.',
+        ),
+      ),
+    );
+  } on AuthenticationFailure {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Senha do backup incorreta.')),
+    );
+  } on BackupFormatException {
+    messenger.showSnackBar(const SnackBar(content: Text('Backup inválido.')));
+  } catch (_) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Não foi possível restaurar.')),
+    );
+  }
+}
 
 /// Ajustes: segurança, backup e informações do app.
 class SettingsPage extends ConsumerWidget {
@@ -144,7 +199,6 @@ class SettingsPage extends ConsumerWidget {
   }
 
   Future<void> _import(BuildContext context, WidgetRef ref) async {
-    final messenger = ScaffoldMessenger.of(context);
     const typeGroup = XTypeGroup(
       label: 'NoxPass backup',
       extensions: ['backup'],
@@ -157,34 +211,11 @@ class SettingsPage extends ConsumerWidget {
     final password = await promptForPassword(
       context,
       title: 'Senha do backup',
-      actionLabel: 'Importar',
+      actionLabel: 'Continuar',
     );
-    if (password == null) return;
+    if (password == null || !context.mounted) return;
 
-    try {
-      final count = await ref
-          .read(vaultBackupManagerProvider)
-          .restore(bytes, password);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            '$count ${count == 1 ? 'segredo importado' : 'segredos importados'}.',
-          ),
-        ),
-      );
-    } on AuthenticationFailure {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Senha do backup incorreta.')),
-      );
-    } on BackupFormatException {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Arquivo de backup inválido.')),
-      );
-    } catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Não foi possível importar.')),
-      );
-    }
+    await _runRestore(context, ref, bytes, password, 'arquivo');
   }
 }
 
@@ -284,23 +315,16 @@ class _DriveSyncSectionState extends ConsumerState<_DriveSyncSection> {
     final password = await promptForPassword(
       context,
       title: 'Senha do backup',
-      actionLabel: 'Restaurar',
+      actionLabel: 'Continuar',
     );
     if (password == null) return;
     setState(() => _busy = true);
     try {
-      final count = await _manager.restoreFromDrive(password);
-      if (mounted) {
-        _snack(
-          '$count ${count == 1 ? 'segredo restaurado' : 'segredos restaurados'}.',
-        );
-      }
+      final bytes = await _manager.downloadBytes();
+      if (!mounted) return;
+      await _runRestore(context, ref, bytes, password, 'Google Drive');
     } on NoRemoteBackup {
       if (mounted) _snack('Nenhum backup encontrado no Drive.');
-    } on AuthenticationFailure {
-      if (mounted) _snack('Senha do backup incorreta.');
-    } on BackupFormatException {
-      if (mounted) _snack('Backup do Drive inválido.');
     } catch (_) {
       if (mounted) _snack('Não foi possível restaurar do Drive.');
     } finally {

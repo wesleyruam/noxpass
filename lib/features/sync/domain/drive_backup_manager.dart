@@ -2,6 +2,8 @@
 // args não compila), então são atribuídos manualmente.
 // ignore_for_file: prefer_initializing_formals
 
+import 'dart:typed_data';
+
 import '../../backup/domain/vault_backup_manager.dart';
 import '../data/google_drive_auth.dart';
 import 'drive_sync_service.dart';
@@ -42,13 +44,14 @@ class DriveBackupManager {
     await DriveSyncService(api).upload(bytes);
   }
 
-  /// Baixa e restaura o cofre do Drive. Retorna quantos segredos entraram.
+  /// Baixa os bytes cifrados do backup remoto (a reconciliação com o cofre é
+  /// feita depois, pelo [VaultBackupManager]).
   /// Lança [NoRemoteBackup] se não houver backup na conta.
-  Future<int> restoreFromDrive(String backupPassword) async {
+  Future<Uint8List> downloadBytes() async {
     final api = await _auth.driveApi();
     final bytes = await DriveSyncService(api).download();
     if (bytes == null) throw const NoRemoteBackup();
-    return _backup.restore(bytes, backupPassword);
+    return bytes;
   }
 
   /// Data da última modificação do backup remoto (sem interação). Null se não

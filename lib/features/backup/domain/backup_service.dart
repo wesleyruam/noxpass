@@ -31,9 +31,9 @@ class BackupService {
     KeyDerivationService? keyDerivation,
     CipherService? cipher,
     SecureRandom? secureRandom,
-  })  : _kdf = keyDerivation ?? const Argon2KeyDerivationService(),
-        _cipher = cipher ?? AesGcmCipherService(),
-        _random = secureRandom ?? const SecureRandom();
+  }) : _kdf = keyDerivation ?? const Argon2KeyDerivationService(),
+       _cipher = cipher ?? AesGcmCipherService(),
+       _random = secureRandom ?? const SecureRandom();
 
   final KeyDerivationService _kdf;
   final CipherService _cipher;
@@ -116,24 +116,22 @@ class BackupService {
   }
 
   Map<String, dynamic> _secretToJson(Secret secret) => {
-        'type': secret.type.name,
-        'title': secret.title,
-        'categoryId': secret.categoryId,
-        'isFavorite': secret.isFavorite,
-        'iconRef': secret.iconRef,
-        'tags': secret.tags,
-        'payload': secret.payload.toJson(),
-      };
+    'type': secret.type.name,
+    'title': secret.title,
+    'categoryId': secret.categoryId,
+    'isFavorite': secret.isFavorite,
+    'iconRef': secret.iconRef,
+    'tags': secret.tags,
+    'payload': secret.payload.toJson(),
+  };
 
   SecretDraft _secretFromJson(Map<String, dynamic> json) => SecretDraft(
-        type: SecretType.fromName(json['type'] as String),
-        title: json['title'] as String,
-        categoryId: json['categoryId'] as String?,
-        isFavorite: (json['isFavorite'] as bool?) ?? false,
-        iconRef: json['iconRef'] as String?,
-        tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? const [],
-        payload: SecretPayload.fromJson(
-          (json['payload'] as Map<String, dynamic>),
-        ),
-      );
+    type: SecretType.fromName(json['type'] as String),
+    title: json['title'] as String,
+    categoryId: json['categoryId'] as String?,
+    isFavorite: (json['isFavorite'] as bool?) ?? false,
+    iconRef: json['iconRef'] as String?,
+    tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? const [],
+    payload: SecretPayload.fromJson((json['payload'] as Map<String, dynamic>)),
+  );
 }
